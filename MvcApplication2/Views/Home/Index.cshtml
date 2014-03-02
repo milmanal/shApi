@@ -1,0 +1,33 @@
+﻿<div>
+    <select id="method">
+        <option value="get">GET</option>
+        <option value="post">POST</option>
+        <option value="put">PUT</option>
+    </select>
+    <input type="button" value="Try it" onclick="sendRequest()" />
+    <span id='value1'>(Result)</span>
+</div>
+
+@section scripts {
+    <script>
+        var serviceUrl = 'http://shimeba2.azurewebsites.net/api/pois/store'; // Replace with your URI.
+
+        function sendRequest() {
+
+            var method = $('#method').val();
+
+            $.ajax({
+                type: method,
+                url: serviceUrl,
+                headers: {
+                    Accept: "text/xml",
+                }
+
+            }).done(function (data) {
+                $('#value1').text(data);
+            }).error(function (jqXHR, textStatus, errorThrown) {
+                $('#value1').text(jqXHR.responseText || textStatus);
+            });
+        }
+    </script>
+}

@@ -1,0 +1,1 @@
+Update-Database -Verbose -ConnectionString "Data Source=tcp:qe6cv7bv2f.database.windows.net,1433;Initial Catalog=ShimebaDB;User ID=shimebadb@qe6cv7bv2f;Password=shimeba1S" -ConnectionProviderName "System.Data.SqlClient" 

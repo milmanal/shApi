@@ -1,0 +1,113 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    // jquery; please use jquery 1.9.1 or above
+    <link href='http://indoor.io/indoor.js/1.1.0/js/jquery-1.9.1.min.js' rel='stylesheet' />
+    // map libraries
+    <link href='http://indoor.io/indoor.js/1.1.0/js/mapbox/mapbox.css' rel='stylesheet' />
+    <script src='http://indoor.io/indoor.js/1.1.0/js/mapbox/mapbox.js'></script>
+    <script src='http://indoor.io/indoor.js/1.1.0/js/indoor.js'></script>
+
+    <script type="text/javascript">
+    function go() {
+    // let's create a map
+    map = L.indoor.map('map', {
+        map: '01215283474884927308',
+        project: 'a1b8e038ab839fc8a5c2df84039269d0',
+    click: indoorMapClicked,
+    hover: indoorMapHovered
+    },
+    null,
+    function() {
+    // if we wanted to show initially a specific level, we could do it here!
+    // var levels = map.getLevels();
+    map.setLevel('1');
+
+    // instead, let's highlight some stores
+    highlightSomeFeatures();
+
+    // enable marker dragging; let's come back to this later
+    enableMarkerDragging();
+    });
+    }
+
+    go();
+
+    var storeHighlight = null;
+    var storePopup = null;
+
+    function indoorMapClicked(event) {
+        // uncomment this row to see some logging of the feature properties
+        // if(event.feature) console.log(JSON.stringify(event.feature.geometry));
+        // only do this if a known feature (that has a store id that we know) 
+        if (event.feature && event.feature.properties.store && stores[event.feature.properties.store]) {
+            if (storeHighlight) {
+                // clear earlier highlights
+                map.clearHighlight(storeHighlight);
+                storeHighlight = null;
+            }
+
+            // if there is an existing click popup, remove it
+            if (storePopup && map.hasLayer(storePopup)) map.removeLayer(storePopup);
+
+            storeHighlight = map.highlightFeatures(event.feature, { stroke: true, color: '#00ff00' });
+
+            // let's create a popup (using Leaflet API)
+            storePopup = L.popup()
+              .setLatLng(event.latLng)
+              .setContent(
+                // add a title
+                '<h4>' + stores[event.feature.properties.store].name + '</h4>' +
+                // add a store info button
+                '<center>' +
+                '<button class="btn btn-primary" ' +
+                   'onclick="showRoute(\'' +
+                     event.feature.properties.store + '\', ' +
+                     event.latLng.lat + ', ' +
+                     event.latLng.lng + ');">' +
+                   'Find route' +
+                '</button>' +
+                '</center>')
+              .addTo(map);
+        } else {
+            var storePopup = L.popup()
+                .setLatLng(event.latLng)
+                .setContent(
+                  '<center>' +
+                  '<button class="btn btn-primary" ' +
+                    'onclick="showRoute(undefined, ' +
+                      event.latLng.lat + ', ' +
+                      event.latLng.lng + ');">Find route</button></center>')
+                .addTo(map);
+        }
+        return;
+    }
+
+    var hoverHighlight = null;
+    var hoveredFeature = null;
+
+    function indoorMapHovered(event) {
+        // uncomment this row to see some logging of the feature properties
+        // if(event.feature) console.log(JSON.stringify(event.feature.properties));
+        if (event.feature) {
+            if ((hoveredFeature && hoveredFeature.properties.featureIdentifier != event.feature.properties.featureIdentifier) || !hoveredFeature) {
+                if (hoverHighlight) map.clearHighlight(hoverHighlight);
+                hoverHighlight = map.highlightFeatures(event.feature, { clickable: false, stroke: true, color: '#ffffff', opacity: '0.3' });
+                hoveredFeature = event.feature;
+            } else {
+
+            }
+            if (event.feature.properties.name) $("#legend_hover").empty().append(event.feature.properties.name);
+            else $("#legend_hover").empty().append('an unnamed area');
+            $("#legend_hover_wrapper").fadeIn();
+        }
+    }
+
+
+    </script>
+</head>
+<body>
+    <div id='map' class='map'></div>
+</body>
+</html>
