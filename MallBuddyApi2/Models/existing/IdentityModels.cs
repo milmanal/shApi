@@ -19,7 +19,7 @@ namespace MallBuddyApi2.Models
     public class ApplicationDbContext : DbContext
     {
         public DbSet<Store> Stores { get; set; }
-        public DbSet<POI> POIs {get; set;}
+        public DbSet<POI> POIs { get; set; }
         public DbSet<Polygone> Polygones { get; set; }
         public DbSet<Area> Areas { get; set; }
         public DbSet<OpeningHoursSpan> Schedules { get; set; }
@@ -34,7 +34,7 @@ namespace MallBuddyApi2.Models
         //}
 
         public ApplicationDbContext()
-            : base("DefaultConnection")
+            : base("Indoor")
         {
             Configuration.ProxyCreationEnabled = false;
         }
@@ -47,7 +47,7 @@ namespace MallBuddyApi2.Models
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Point3D>().Property(x => x.Longitude).HasPrecision(18,15);
+            modelBuilder.Entity<Point3D>().Property(x => x.Longitude).HasPrecision(18, 15);
             modelBuilder.Entity<Point3D>().Property(x => x.Latitude).HasPrecision(17, 15);
         }
 

@@ -25,8 +25,8 @@ namespace MallBuddyApi2
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
 
-            //var config = GlobalConfiguration.Configuration;
-            //config.EnableCors();
+            var config = GlobalConfiguration.Configuration;
+            config.EnableCors();
             //config.MapHttpAttributeRoutes();
             var migratorConfig = new Migrations.Configuration();
             var dbMigrator = new DbMigrator(migratorConfig);

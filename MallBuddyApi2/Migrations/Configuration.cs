@@ -22,7 +22,7 @@ namespace MallBuddyApi2.Migrations
         public Configuration()
         {
             AutomaticMigrationsEnabled = true;
-            
+
         }
 
         protected override void Seed(MallBuddyApi2.Models.ApplicationDbContext context)
@@ -75,7 +75,7 @@ namespace MallBuddyApi2.Migrations
                 Polygone poly = new Polygone
                 {
                     Accessible = true,
-                    Areas = new List<Area> { new Area { AreaID = "0401" }, new Area { AreaID = "0401A" } },
+                    // Areas = new List<Area> { new Area { AreaID = "0401" }, new Area { AreaID = "0401A" } },
                     Wkt = "POLYGON ((34.775053932498516 32.07540339193275,34.77499915806167 32.07548404017222,34.77497984348338 32.07549149508553, 34.774953825764996 32.07549049106811,34.774935077805786 32.07547970303128,34.77491144862596 32.07545506831342,34.77490455271353 32.07544820193738, 34.77489280495869 32.075426482513976, 34.774889877466975 32.07541821355505,34.774886213457535 32.07540786423455,34.77488379926684 32.075401045136886,34.774871958289275 32.07534718017001,34.77487191400818 32.0752896316811,34.77492920795574 32.075324825765655,34.775053932498516 32.07540339193275,34.775053932498516 32.07540339193275))",
                     LocationG = DbGeometry.PolygonFromText("POLYGON ((34.775053932498516 32.07540339193275,34.77499915806167 32.07548404017222,34.77497984348338 32.07549149508553, 34.774953825764996 32.07549049106811,34.774935077805786 32.07547970303128,34.77491144862596 32.07545506831342,34.77490455271353 32.07544820193738, 34.77489280495869 32.075426482513976, 34.774889877466975 32.07541821355505,34.774886213457535 32.07540786423455,34.77488379926684 32.075401045136886,34.774871958289275 32.07534718017001,34.77487191400818 32.0752896316811,34.77492920795574 32.075324825765655,34.775053932498516 32.07540339193275,34.775053932498516 32.07540339193275))", 4326),
                     Points = new List<Point3D>()
@@ -180,6 +180,7 @@ namespace MallBuddyApi2.Migrations
                         context.POIs.AddOrUpdate(new POI[] { poi });
                     try
                     {
+
                         context.SaveChanges();
                     }
                     catch (Exception ex)
@@ -216,6 +217,7 @@ namespace MallBuddyApi2.Migrations
         {
             POI poi = new POI();
             poi.Type = null;
+            poi.Modified = DateTime.Now;
             Polygone toReturn = new Polygone();
             toReturn.Points = new List<Point3D>();
             int level = int.Parse(feature["properties"]["level"].ToString());

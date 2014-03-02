@@ -16,9 +16,9 @@ namespace MallBuddyApi2.Models
             this.AreaID = area;
         }
         [Key]
-        [JsonIgnore]
-        [XmlIgnore]
-        public int ID { get; set; }
+        //[JsonIgnore]
+        //[XmlIgnore]
+       // public int ID { get; set; }
         public String AreaID { get; set; }
     }
 }

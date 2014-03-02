@@ -6,11 +6,24 @@ using System.Globalization;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using MallBuddyApi2.Models.existing;
+using System.Reflection;
 
 namespace MallBuddyApi2.Models
 {
     public class Store : POI, ISchedulable
     {
+        //private POI poi;
+
+        public Store(POI poi)
+        {
+            foreach (PropertyInfo prop in poi.GetType().GetProperties())
+                GetType().GetProperty(prop.Name).SetValue(this, prop.GetValue(poi, null), null);
+        }
+
+        public Store()
+        {
+            // TODO: Complete member initialization
+        }
         //[KeyAttribute]
         //public int Id { get; set; }
         //public string Name { get; set; }
@@ -34,7 +47,7 @@ namespace MallBuddyApi2.Models
         public string LogoUrl { get; set; }
         //public List<Image> ImageList { get; set; }
 
-        public bool IsAccessible { get; set;     }
+        public bool IsAccessible { get; set; }
 
         //public string Self
         //{

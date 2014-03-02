@@ -18,18 +18,18 @@ namespace MallBuddyApi2.Models
         public long DbID { get; set; }
         public String Name { get; set; }
         public String Description { get; set; }
-        public virtual Polygone Location { get; set; }                
+        public virtual Polygone Location { get; set; }
         [NotMapped]
         [JsonIgnore]
         [IgnoreDataMemberAttribute]
-        public virtual Point3D Anchor { get; set; }       
+        public virtual Point3D Anchor { get; set; }
         public bool IsWalkable { get; set; }
         public List<Image> ImageList { get; set; }
         public String ImageUrl { get; set; }
-        [EnumDataType( typeof(POIType))]
+        [EnumDataType(typeof(POIType))]
         public Nullable<POIType> Type { get; set; }
         public bool Enabled { get; set; }
         public enum POIType { STORE, PASSAGE, ELEVATOR, ATM, WC, STAIRS, ESCALATOR, ENTRANCE, PARKING, KIOSK, ZONE }
-
+        public DateTime Modified { get; set; }
     }
 }
