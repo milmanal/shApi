@@ -3,7 +3,7 @@ namespace MallBuddyApi2.Migrations
     using System;
     using System.Data.Entity.Migrations;
     
-    public partial class Initial : DbMigration
+    public partial class linestrings : DbMigration
     {
         public override void Up()
         {
@@ -11,12 +11,11 @@ namespace MallBuddyApi2.Migrations
                 "dbo.Areas",
                 c => new
                     {
-                        ID = c.Int(nullable: false, identity: true),
-                        AreaID = c.String(),
+                        AreaID = c.String(nullable: false, maxLength: 128),
                         Point3D_Id = c.Long(),
                         Polygone_Id = c.Int(),
                     })
-                .PrimaryKey(t => t.ID)
+                .PrimaryKey(t => t.AreaID)
                 .ForeignKey("dbo.Point3D", t => t.Point3D_Id)
                 .ForeignKey("dbo.Polygones", t => t.Polygone_Id)
                 .Index(t => t.Point3D_Id)
@@ -27,14 +26,15 @@ namespace MallBuddyApi2.Migrations
                 c => new
                     {
                         Id = c.Int(nullable: false, identity: true),
-                        StartLevel = c.Int(nullable: false),
-                        EndLevel = c.Int(nullable: false),
                         Type = c.Int(nullable: false),
-                        Anchor_Id = c.Long(),
+                        Highpoint_Id = c.Long(),
+                        Lowpoint_Id = c.Long(),
                     })
                 .PrimaryKey(t => t.Id)
-                .ForeignKey("dbo.Point3D", t => t.Anchor_Id)
-                .Index(t => t.Anchor_Id);
+                .ForeignKey("dbo.Point3D", t => t.Highpoint_Id)
+                .ForeignKey("dbo.Point3D", t => t.Lowpoint_Id)
+                .Index(t => t.Highpoint_Id)
+                .Index(t => t.Lowpoint_Id);
             
             CreateTable(
                 "dbo.Point3D",
@@ -84,6 +84,26 @@ namespace MallBuddyApi2.Migrations
                 .Index(t => t.POI_DbID);
             
             CreateTable(
+                "dbo.LineStrings",
+                c => new
+                    {
+                        Id = c.Long(nullable: false, identity: true),
+                        Level = c.Int(nullable: false),
+                        LocationG = c.Geometry(),
+                        Wkt = c.String(),
+                        Name = c.String(),
+                        IsAccessible = c.Boolean(nullable: false),
+                        Distance = c.Double(nullable: false),
+                        Source_Id = c.Long(),
+                        Target_Id = c.Long(),
+                    })
+                .PrimaryKey(t => t.Id)
+                .ForeignKey("dbo.Point3D", t => t.Source_Id)
+                .ForeignKey("dbo.Point3D", t => t.Target_Id)
+                .Index(t => t.Source_Id)
+                .Index(t => t.Target_Id);
+            
+            CreateTable(
                 "dbo.POIs",
                 c => new
                     {
@@ -94,6 +114,7 @@ namespace MallBuddyApi2.Migrations
                         ImageUrl = c.String(),
                         Type = c.Int(),
                         Enabled = c.Boolean(nullable: false),
+                        Modified = c.DateTime(nullable: false),
                         gateID = c.String(),
                         Floor = c.Int(),
                         WebsiteLink = c.String(),
@@ -143,11 +164,10 @@ namespace MallBuddyApi2.Migrations
                 "dbo.Categories",
                 c => new
                     {
-                        ID = c.String(nullable: false, maxLength: 128),
-                        Text = c.String(),
+                        Text = c.String(nullable: false, maxLength: 128),
                         Store_DbID = c.Long(),
                     })
-                .PrimaryKey(t => t.ID)
+                .PrimaryKey(t => t.Text)
                 .ForeignKey("dbo.POIs", t => t.Store_DbID)
                 .Index(t => t.Store_DbID);
             
@@ -164,7 +184,10 @@ namespace MallBuddyApi2.Migrations
             DropForeignKey("dbo.Point3D", "Polygone_Id", "dbo.Polygones");
             DropForeignKey("dbo.Areas", "Polygone_Id", "dbo.Polygones");
             DropForeignKey("dbo.Images", "POI_DbID", "dbo.POIs");
-            DropForeignKey("dbo.Connectors", "Anchor_Id", "dbo.Point3D");
+            DropForeignKey("dbo.LineStrings", "Target_Id", "dbo.Point3D");
+            DropForeignKey("dbo.LineStrings", "Source_Id", "dbo.Point3D");
+            DropForeignKey("dbo.Connectors", "Lowpoint_Id", "dbo.Point3D");
+            DropForeignKey("dbo.Connectors", "Highpoint_Id", "dbo.Point3D");
             DropForeignKey("dbo.Areas", "Point3D_Id", "dbo.Point3D");
             DropIndex("dbo.OpeningHoursSpans", new[] { "Store_DbID" });
             DropIndex("dbo.Point3D", new[] { "Store_DbID" });
@@ -175,12 +198,16 @@ namespace MallBuddyApi2.Migrations
             DropIndex("dbo.Point3D", new[] { "Polygone_Id" });
             DropIndex("dbo.Areas", new[] { "Polygone_Id" });
             DropIndex("dbo.Images", new[] { "POI_DbID" });
-            DropIndex("dbo.Connectors", new[] { "Anchor_Id" });
+            DropIndex("dbo.LineStrings", new[] { "Target_Id" });
+            DropIndex("dbo.LineStrings", new[] { "Source_Id" });
+            DropIndex("dbo.Connectors", new[] { "Lowpoint_Id" });
+            DropIndex("dbo.Connectors", new[] { "Highpoint_Id" });
             DropIndex("dbo.Areas", new[] { "Point3D_Id" });
             DropTable("dbo.Categories");
             DropTable("dbo.OpeningHoursSpans");
             DropTable("dbo.Polygones");
             DropTable("dbo.POIs");
+            DropTable("dbo.LineStrings");
             DropTable("dbo.Images");
             DropTable("dbo.ContactDetails");
             DropTable("dbo.Point3D");

@@ -26,7 +26,7 @@ namespace MallBuddyApi2.Models
         public DbSet<Point3D> Points { get; set; }
         public DbSet<ContactDetails> ContactDetails { get; set; }
         public DbSet<Image> Images { get; set; }
-
+        public DbSet<LineStringDTO> LineStrings { get; set; }
         public DbSet<Connector> Connectors { get; set; }
         //static ApplicationDbContext()
         //{
@@ -34,7 +34,7 @@ namespace MallBuddyApi2.Models
         //}
 
         public ApplicationDbContext()
-            : base("Indoor")
+            : base("Indoor2")
         {
             Configuration.ProxyCreationEnabled = false;
         }
@@ -49,6 +49,7 @@ namespace MallBuddyApi2.Models
         {
             modelBuilder.Entity<Point3D>().Property(x => x.Longitude).HasPrecision(18, 15);
             modelBuilder.Entity<Point3D>().Property(x => x.Latitude).HasPrecision(17, 15);
+            modelBuilder.Ignore<LineString3D<Point3D>>();
         }
 
         public static string GetConnectionString(string dbName)
