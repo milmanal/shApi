@@ -27,7 +27,6 @@ namespace MallBuddyApi2.Models
         public DbSet<ContactDetails> ContactDetails { get; set; }
         public DbSet<Image> Images { get; set; }
         public DbSet<LineStringDTO> LineStrings { get; set; }
-        public DbSet<Connector> Connectors { get; set; }
         //static ApplicationDbContext()
         //{
         //    Database.SetInitializer(new MySqlInitializer());
@@ -56,7 +55,7 @@ namespace MallBuddyApi2.Models
         {
             // Server=localhost;Database={0};Uid=username;Pwd=password
             var connString =
-                ConfigurationManager.ConnectionStrings["MyDatabase"].ConnectionString.ToString();
+                ConfigurationManager.ConnectionStrings[dbName].ConnectionString.ToString();
 
             return String.Format(connString, dbName);
         }

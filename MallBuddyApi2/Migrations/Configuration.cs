@@ -22,7 +22,8 @@ namespace MallBuddyApi2.Migrations
 
     internal sealed class Configuration : DbMigrationsConfiguration<MallBuddyApi2.Models.ApplicationDbContext>
     {
-        private const string JSON_PATH = @"F:\Users\mlmn\Documents\Indoor\indoorIO\012152834748849273080-0593752114.json";
+        private const string JSON_PATH = @"F:\Users\mlmn\Documents\Indoor\indoorIO\012152834748849273080-0240009142.json";
+        private const string JSON_DIR_PATH = @"F:\Users\mlmn\Documents\Indoor\indoorIO";
         public Configuration()
         {
             AutomaticMigrationsEnabled = true;
@@ -47,7 +48,7 @@ namespace MallBuddyApi2.Migrations
             //   System.Diagnostics.Debugger.Launch();
 
             //System.Diagnostics.Debugger.Break();
-            SeedFromJson(context);
+            SeedFromJson(new ApplicationDbContext());
 
             //InsertGolfStore(context);
         }
@@ -117,7 +118,11 @@ namespace MallBuddyApi2.Migrations
             {
                 Dictionary<string, Point3D> labeledPoints = new Dictionary<string, Point3D>();
                 StringBuilder sb = new StringBuilder();
-                string geojson = System.IO.File.ReadAllText(JSON_PATH);
+                var directory = new DirectoryInfo(JSON_DIR_PATH);
+                var myFile = directory.GetFiles()
+                             .OrderByDescending(f => f.LastWriteTime)
+                             .First();
+                string geojson = System.IO.File.ReadAllText(myFile.FullName);
                 JsonTextReader reader = new JsonTextReader(new StringReader(geojson));
                 reader.FloatParseHandling = FloatParseHandling.Decimal;
                 JObject jObject = Newtonsoft.Json.Linq.JObject.Load(reader);
@@ -129,14 +134,15 @@ namespace MallBuddyApi2.Migrations
                 List<JObject> paths = new List<JObject>();
                 List<Point3D> pathPoints = new List<Point3D>();
                 // ramp connector points
-                Dictionary<string, JObject> pillarPoints = new Dictionary<string,JObject>();
+                Dictionary<string, Point3D> pillarPoints = new Dictionary<string, Point3D>();
                 List<MallBuddyApi2.Models.existing.LineStringDTO> lineStrings = new List<LineStringDTO>();
                 List<JObject> connetcors = new List<JObject>();
                 int noareas = 0;
 
                 foreach (JObject j in jObject["features"])
                 {
-                    if (j != null && j["properties"]["level"] != null && (j["properties"]["level"].ToString() == "2" | j["properties"]["level"].ToString() == "3"))
+                    if (j != null && j["properties"]["level"] != null && (j["properties"]["level"].ToString() == "2" | j["properties"]["level"].ToString() == "3"|
+                        j["properties"]["level"].ToString() == "4" | j["properties"]["level"].ToString() == "5"))
                     {
                         //level0.Add(j);
                         if (j != null && j["properties"]["connector"] != null && j["properties"]["connector"].ToString() == "true")
@@ -153,7 +159,10 @@ namespace MallBuddyApi2.Migrations
 && j["properties"]["geomType"]["Type"] != null && j["properties"]["geomType"]["Type"].ToString() == "Pillar")
                         {
                             if (j["properties"]["attrs"]["name"] != null)
-                                pillarPoints.Add(j["properties"]["attrs"]["name"].ToString(), j);
+                            {
+                                Point3D result = extractPoint(noareas, j, badPolygonsPoints, new Point3D.PointType());
+                                pillarPoints.Add(result.Name,result);
+                            }
                         }
 
                         if (j != null && j["geometry"]["type"] != null && j["geometry"]["type"].ToString() == "LineString"
@@ -170,8 +179,9 @@ namespace MallBuddyApi2.Migrations
                 //    extractPoint(noareas, j, labeledPoints);
                 //removeBadPolygons(badPolygonsPoints, polys);
                 List<POI> poisToSave = new List<POI>();
-
+                getMultipleLevelsConnectors(pillarPoints, lineStrings, pathPoints);
                 getAdjacentLevelsConnectors(pillarPoints, lineStrings,pathPoints);
+                connectPOIsToPaths(labeledPoints, lineStrings, pathPoints);
                 //foreach (JObject j in paths)
                 //    extractLineString(j, lineStrings);
                 foreach (JObject j in polys)
@@ -210,14 +220,15 @@ namespace MallBuddyApi2.Migrations
                     //}
                     //foreach (POI poi in poisToSave)
                     //context.Polygones.Attach(poi.Location);
-                    if (poi.Type == POI.POIType.STORE)
-                    {
-                        context.Stores.AddOrUpdate(new Store[] { (Store)poi });
-                    }
-                    else
-                        context.POIs.AddOrUpdate(new POI[] { poi });
                     try
                     {
+                        if (poi.Type == POI.POIType.STORE)
+                        {
+                            context.Stores.AddOrUpdate(new Store[] { (Store)poi });
+                        }
+                        else
+                            context.POIs.AddOrUpdate(new POI[] { poi });
+
 
                         context.SaveChanges();
                     }
@@ -245,7 +256,134 @@ namespace MallBuddyApi2.Migrations
 
         }
 
-        private void getAdjacentLevelsConnectors(Dictionary<string, JObject> pillarPoints, List<LineStringDTO> lineStrings, List<Point3D> pathPoints)
+        private void connectPOIsToPaths(Dictionary<string, Point3D> labeledPoints, List<LineStringDTO> paths, List<Point3D> pathPoints)
+        {
+            foreach (var item in labeledPoints.Values)
+            {
+                double minToSource = double.MaxValue;
+                Point3D closestSource = null;
+                foreach (Point3D pointFromAll in pathPoints)
+                {
+                    if (item.Equals(pointFromAll) | item.Level!=pointFromAll.Level)
+                        continue;
+                    double toSource = GeoUtils.GetHaversineDistance(pointFromAll, item);
+                    if (toSource < minToSource)
+                    {
+                        minToSource = toSource;
+                        closestSource = pointFromAll;
+                    }
+                }
+                LineStringDTO pointToNearestPath = new LineStringDTO
+                {
+                    Level = item.Level,
+                    Source = closestSource,
+                    Target = item,
+                    Distance = minToSource,
+                    Name = "Edge To "+item.Name,
+                };
+                pointToNearestPath.setWktAndLocationG();
+                paths.Add(pointToNearestPath);
+            }
+
+        }
+
+        private void getMultipleLevelsConnectors(Dictionary<string, Point3D> pillarPoints, List<LineStringDTO> lineStrings, List<Point3D> pathPoints)
+        {
+            HashSet<string> pillarPOintsUsed = new HashSet<string>();
+            List<string> pillarsList = pillarPoints.Keys.ToList();
+            Dictionary<string, List<Point3D>> connectorsByLevelandType = new Dictionary<string, List<Point3D>>
+            {
+                {"stairsAodd", new List<Point3D>()},
+                {"stairsBodd", new List<Point3D>()},
+                {"stairsAeven", new List<Point3D>()},
+                {"stairsBeven", new List<Point3D>()},               
+                {"elevatorB", new List<Point3D>()}
+
+            };
+            //check for stairs
+            foreach (string name in pillarsList)
+            {
+                if (name.Contains("AStairs"))
+                {
+                    int level = -1;
+                    if (!int.TryParse(name[0].ToString(),out level))
+                        continue;
+                    if (level % 2 == 0)
+                        connectorsByLevelandType["stairsAeven"].Add(pillarPoints[name]);
+                    else
+                        connectorsByLevelandType["stairsAodd"].Add(pillarPoints[name]);
+                }
+                if (name.Contains("BStairs"))
+                {
+                    int level = -1;
+                    if (!int.TryParse(name[0].ToString(), out level))
+                        continue;
+                    if (level % 2 == 0)
+                        connectorsByLevelandType["stairsBeven"].Add(pillarPoints[name]);
+                    else
+                        connectorsByLevelandType["stairsBodd"].Add(pillarPoints[name]);
+                }
+                if (name.Contains("Elevator"))
+                {
+                    int level = -1;
+                    if (!int.TryParse(name[0].ToString(), out level))
+                        continue;
+                    if (level % 2 == 0)
+                        connectorsByLevelandType["elevatorB"].Add(pillarPoints[name]);
+                    else
+                        connectorsByLevelandType["elevatorB"].Add(pillarPoints[name]);
+                }
+                //if (name.Contains("Esc"))
+                //{
+                //    int level = -1;
+                //    if (!int.TryParse(name[0].ToString(), out level))
+                //        continue;
+                //    if (level % 2 == 0)
+                //        connectorsByLevelandType["elevatorB"].Add(pillarPoints[name]);
+                //    else
+                //        connectorsByLevelandType["elevatorB"].Add(pillarPoints[name]);
+                //}
+            }
+            foreach (string key in connectorsByLevelandType.Keys)
+            {
+                connectAllFloors(connectorsByLevelandType[key], lineStrings, pathPoints,pillarPoints);
+            }
+        }
+
+        private void connectAllFloors(List<Point3D> pointsToConnect, List<LineStringDTO> lineStrings, List<Point3D> pathPoints, Dictionary<string, Point3D> pillarPoints)
+        {
+            for (int i = 0; i < pointsToConnect.Count; i++)
+            {
+                //JObject jobjectSource = pointsToConnect[i];
+                Point3D source = pointsToConnect[i];
+                //source = extractPoint(0, jobjectSource, null, Point3D.PointType.PATH_POINT);
+                if (!pathPoints.Contains(source))
+                    pathPoints.Add(source);
+                for (int j = i + 1; j < pointsToConnect.Count; j++)
+                {
+
+
+                    LineStringDTO toAdd = new LineStringDTO();
+                    //JObject jobjectTarget = pointsToConnect[j];
+                    Point3D target = pointsToConnect[j];
+                    //target = extractPoint(0, jobjectTarget, null, Point3D.PointType.PATH_POINT);
+                    if (!pathPoints.Contains(target))
+                        pathPoints.Add(target);
+                    toAdd.Source = source;
+                    toAdd.Target = target;
+                    toAdd.Wkt = "LINESTRING(" + source.Longitude + " " + source.Latitude + "," + target.Longitude + " " + target.Latitude + ")";
+                    toAdd.LocationG = DbGeometry.LineFromText(toAdd.Wkt, 4326);
+                    toAdd.BiDirectional = true;
+                    toAdd.Distance = GeoUtils.GetHaversineDistance(source, target);
+                    toAdd.Level = source.Level;
+                    toAdd.setConnectorType();
+                    lineStrings.Add(toAdd);
+                }
+                pillarPoints.Remove(source.Name);
+            }
+        }
+
+        private void getAdjacentLevelsConnectors(Dictionary<string, Point3D> pillarPoints, List<LineStringDTO> lineStrings, List<Point3D> pathPoints)
         {
             HashSet<string> pillarPOintsUsed = new HashSet<string>();
             List<string> pillarsList = pillarPoints.Keys.ToList();
@@ -255,9 +393,9 @@ namespace MallBuddyApi2.Migrations
                 //    Debugger.Break();
                 if (!pillarPoints.ContainsKey(name))
                     continue;
-                JObject j = pillarPoints[name];
-                Point3D source = new Point3D();
-                source = extractPoint(0, j, null, Point3D.PointType.PATH_POINT);
+                //JObject j = pillarPoints[name];
+                Point3D source = pillarPoints[name];
+                //source = extractPoint(0, j, null, Point3D.PointType.PATH_POINT);
                 if (source.Name.Length < 3)
                     continue;
                 if (pathPoints.Contains(source))
@@ -273,9 +411,9 @@ namespace MallBuddyApi2.Migrations
                 if (!pillarPoints.ContainsKey(destname))
                     continue;
                 LineStringDTO toAdd = new LineStringDTO();
-                j = pillarPoints[destname];
-                Point3D target = new Point3D();
-                target = extractPoint(0, j, null, Point3D.PointType.PATH_POINT);
+                //j = pillarPoints[destname];
+                Point3D target = pillarPoints[destname];
+                //target = extractPoint(0, j, null, Point3D.PointType.PATH_POINT);
                 if (pathPoints.Contains(target))
                 {
                     target = pathPoints.Find(x => x == target);
@@ -289,6 +427,12 @@ namespace MallBuddyApi2.Migrations
                 toAdd.LocationG = DbGeometry.LineFromText(toAdd.Wkt,4326);
                 toAdd.Distance = GeoUtils.GetHaversineDistance(source, target);
                 toAdd.Level = source.Level;
+                if (source.Name.Contains("Esc"))
+                    if (source.Name.Contains("EscBi"))
+                        toAdd.BiDirectional = true;
+                    else
+                        toAdd.BiDirectional = false;
+                toAdd.setConnectorType();
                 lineStrings.Add(toAdd);
                 pillarPoints.Remove(name);
                 pillarPoints.Remove(destname);
@@ -302,6 +446,8 @@ namespace MallBuddyApi2.Migrations
             int level = int.Parse(feature["properties"]["level"].ToString());
             //bool isAccessible = Boolean.Parse(feature["properties"]["accessible"].ToString());
             toAdd.Level = level;
+            if (feature["properties"]["attrs"]["name"]!=null)
+                toAdd.Name = feature["properties"]["attrs"]["name"].ToString();
             StringBuilder wktsb = new StringBuilder("LINESTRING (");
             //List<Point3D> labeledPointsFound = new List<Point3D>();
             //Point3D source = new Point3D();
@@ -342,6 +488,8 @@ namespace MallBuddyApi2.Migrations
             toAdd.Wkt = wktsb.ToString();
             toAdd.LocationG = DbGeometry.LineFromText(toAdd.Wkt, 4326);
             toAdd.Distance = GeoUtils.GetHaversineDistance(toAdd.Source, toAdd.Target);
+            toAdd.BiDirectional = true;
+            toAdd.setConnectorType();
             lineStrings.Add(toAdd);
         }
 
@@ -422,8 +570,11 @@ namespace MallBuddyApi2.Migrations
                             return;
             }
             Point3D labeledPoint = labeledPointsFound[0];
+
             if (labeledPoint != null)
             {
+                //if (labeledPoint.Name != null && labeledPoint.Name.Contains("נייק"))
+                //    Debugger.Break();
                 toReturn.Areas = labeledPoint.Areas;
                 if (labeledPoint.Areas != null && labeledPoint.Areas.Count > 0 && !labeledPoint.Areas[0].AreaID.StartsWith("9"))
                     poi.Type = POI.POIType.STORE;
@@ -452,7 +603,6 @@ namespace MallBuddyApi2.Migrations
                                 Name = labeledPoint.Name,
                                 Name2 = labeledPoint.Name2,
                                 Location = toReturn,
-                                Modified = DateTime.Now,
                                 Entrances = new List<Point3D>()
                             };
                             foreach (Point3D entrancePoint in labeledPointsFound)
@@ -477,6 +627,7 @@ namespace MallBuddyApi2.Migrations
                             break;
                         }
                 }
+                poi.Modified = DateTime.Now;
                 poisToSave.Add(poi);
             }
             //return poi;
@@ -502,17 +653,29 @@ namespace MallBuddyApi2.Migrations
                 toReturn.Name2 = feature["properties"]["attrs"]["Name2"].ToString();
             if (pointType != Point3D.PointType.UNDEFINED)
                 toReturn.Type = pointType;
+            //if (toReturn.Name != null && toReturn.Name.Contains("כלי זמר"))
+            //    Debugger.Break();
             toReturn.Areas = new List<Area>();
-            if (feature["properties"]["attrs"]["AreaID"] != null)
+            if (feature["properties"]["attrs"]["AreaID"] != null && !feature["properties"]["attrs"]["AreaID"].ToString().Equals(""))
             {
-                Area area = new Area(feature["properties"]["attrs"]["AreaID"].ToString());
-                toReturn.Areas.Add(area);
+                if (feature["properties"]["attrs"]["AreaID"].ToString() != "")
+                {
+                    Area area = new Area(feature["properties"]["attrs"]["AreaID"].ToString());
+                    toReturn.Areas.Add(area);
+                }
                 int index = 2;
+                while (feature["properties"]["attrs"]["AREAID" + index] != null)
+                {
+                    if (feature["properties"]["attrs"]["AREAID" + index].ToString()!="")
+                    toReturn.Areas.Add(new Area(feature["properties"]["attrs"]["AREAID" + index].ToString()));
+                    index++;
+                }
                 while (feature["properties"]["attrs"]["AreaID" + index] != null)
                 {
-                    toReturn.Areas.Add(new Area(feature["properties"]["attrs"]["AreaID" + index++].ToString()));
+                    if (feature["properties"]["attrs"]["AreaID" + index].ToString() != "")
+                    toReturn.Areas.Add(new Area(feature["properties"]["attrs"]["AreaID" + index].ToString()));
+                    index++;
                 }
-
             }
             else
             {

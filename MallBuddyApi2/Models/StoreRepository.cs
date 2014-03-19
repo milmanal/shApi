@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data.Entity.Spatial;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Web;
@@ -20,14 +21,31 @@ namespace MallBuddyApi2.Models
 
         public IEnumerable<Store> GetAll()
         {
-            return this.context.Stores.Include("Location").Include("Location.Points").Include("ContactDetails").
-                Include("Schedule").Include("Entrances").Include("Categories").Include("ImageList").Include("ImageList").
-                Include("ImageList").Include("Location.Areas");
+            return this.context.Stores.ToList();
         }
 
         public Store Get(int id)
         {
             return this.context.Stores.Find(id);
+        }
+
+        public List<Store> GetContainerByLocation(string lon, string lat, int level)
+        {
+            List<Store> containers = new List<Store>();
+            using (var context = new ApplicationDbContext())
+            {
+                var levelStores = context.Stores.Include("Location").Where(x => x.Floor == level);
+                //int count = levelStores.Count();
+
+                DbGeometry point = DbGeometry.PointFromText("POINT (" + lon + " " + lat + ")", 4326);
+                foreach (var s in levelStores)
+                {
+                    //context.Entry(s).Reference("Location").Load();
+                    if (s.Location.LocationG.Contains(point))
+                        containers.Add(s);
+                }
+            }
+            return containers;
         }
 
         public Store Add(Store store)

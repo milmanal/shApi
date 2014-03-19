@@ -13,5 +13,7 @@ namespace MallBuddyApi2.Controllers
         POI Add(POI store);
         void Remove(int id);
         bool Update(POI store);
+        List<POI> GetContainerByLocation(string lon, string lat, int level);
+
     }
 }

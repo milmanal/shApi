@@ -19,6 +19,8 @@ namespace MallBuddyApi2.Models
         public String Name { get; set; }
         public String Description { get; set; }
         public virtual Polygone Location { get; set; }
+        public virtual List<Point3D> Entrances { get; set; }
+
         [NotMapped]
         [JsonIgnore]
         [IgnoreDataMemberAttribute]

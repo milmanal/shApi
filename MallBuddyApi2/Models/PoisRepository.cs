@@ -1,6 +1,7 @@
 ﻿using MallBuddyApi2.Models;
 using System;
 using System.Collections.Generic;
+using System.Data.Entity.Spatial;
 using System.Linq;
 using System.Text;
 
@@ -10,6 +11,11 @@ namespace MallBuddyApi2.Controllers
     {
         private Models.ApplicationDbContext db;
 
+        public PoisRepository()
+        {
+            // TODO: Complete member initialization
+            this.db = new ApplicationDbContext();
+        }
         public PoisRepository(Models.ApplicationDbContext applicationDbContext)
         {
             // TODO: Complete member initialization
@@ -43,5 +49,25 @@ namespace MallBuddyApi2.Controllers
         {
             throw new NotImplementedException();
         }
+
+        public List<POI> GetContainerByLocation(string lon, string lat, int level)
+        {
+            List<POI> containers = new List<POI>();
+            using (var context = new ApplicationDbContext())
+            {
+                var levelStores = context.Stores.Include("Location").Where(x => x.Floor == level);
+                //int count = levelStores.Count();
+
+                DbGeometry point = DbGeometry.PointFromText("POINT (" + lon + " " + lat + ")", 4326);
+                foreach (var s in levelStores)
+                {
+                    //context.Entry(s).Reference("Location").Load();
+                    if (s.Location.LocationG.Contains(point))
+                        containers.Add(s);
+                }
+            }
+            return containers;
+        }
+
     }
 }

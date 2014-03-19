@@ -39,12 +39,18 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Elmah">
+      <HintPath>..\packages\elmah.corelibrary.1.2.2\lib\Elmah.dll</HintPath>
+    </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\EntityFramework.6.0.2\lib\net45\EntityFramework.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework.SqlServer">
       <HintPath>..\packages\EntityFramework.6.0.2\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net">
+      <HintPath>..\packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.Data.Edm, Version=5.6.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -209,26 +215,25 @@
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\MapsController.cs" />
     <Compile Include="Controllers\RoutingController.cs" />
-    <Compile Include="Migrations\201403060215481_linestrings.cs" />
-    <Compile Include="Migrations\201403060215481_linestrings.Designer.cs">
-      <DependentUpon>201403060215481_linestrings.cs</DependentUpon>
+    <Compile Include="Migrations\201403170210378_initial.cs" />
+    <Compile Include="Migrations\201403170210378_initial.Designer.cs">
+      <DependentUpon>201403170210378_initial.cs</DependentUpon>
     </Compile>
-    <Compile Include="Migrations\201403062020117_pointype.cs" />
-    <Compile Include="Migrations\201403062020117_pointype.Designer.cs">
-      <DependentUpon>201403062020117_pointype.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\201403062023017_pointype2.cs" />
-    <Compile Include="Migrations\201403062023017_pointype2.Designer.cs">
-      <DependentUpon>201403062023017_pointype2.cs</DependentUpon>
-    </Compile>
+    <Compile Include="Models\existing\SimplePOI.cs" />
     <Compile Include="Models\existing\FloorMap.cs" />
-    <Compile Include="Models\existing\Graph.cs" />
-    <Compile Include="Models\existing\LineString3D.cs" />
+    <Compile Include="Models\existing\IHasEntrances.cs" />
+    <Compile Include="Models\existing\Routing\Graph.cs" />
+    <Compile Include="Models\existing\Routing\Graph21\Edge.cs" />
+    <Compile Include="Models\existing\Routing\Graph21\Graph2.cs" />
+    <Compile Include="Models\existing\Routing\Graph21\GraphDataItem.cs" />
+    <Compile Include="Models\existing\Routing\Graph21\GraphSearchResult.cs" />
+    <Compile Include="Models\existing\Routing\Graph21\Vertex.cs" />
+    <Compile Include="Models\existing\Routing\LineString3D.cs" />
     <Compile Include="Models\existing\LineStringDTO.cs" />
     <Compile Include="Models\existing\MapsData.cs" />
-    <Compile Include="Models\existing\PointsInPath.cs" />
-    <Compile Include="Models\existing\RoutingPath.cs" />
-    <Compile Include="Models\existing\RoutingStep.cs" />
+    <Compile Include="Models\existing\Routing\PointsInPath.cs" />
+    <Compile Include="Models\existing\Routing\RoutingPath.cs" />
+    <Compile Include="Models\existing\Routing\RoutingStep.cs" />
     <Compile Include="Models\PoisRepository.cs" />
     <Compile Include="Models\IPoisRepository.cs" />
     <Compile Include="Controllers\PoisController.cs" />
@@ -241,7 +246,6 @@
     <Compile Include="Models\existing\Announcement.cs" />
     <Compile Include="Models\existing\Area.cs" />
     <Compile Include="Models\existing\Category.cs" />
-    <Compile Include="Models\existing\Connector.cs" />
     <Compile Include="Models\existing\ContactDetails.cs" />
     <Compile Include="Models\existing\Entrance.cs" />
     <Compile Include="Models\existing\IdentityModels.cs" />
@@ -260,6 +264,7 @@
     <Compile Include="Utils\GeoUtils.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="App_Readme\Elmah.txt" />
     <Content Include="Areas\HelpPage\HelpPage.css" />
     <Content Include="Content\themes\base\images\ui-bg_flat_0_aaaaaa_40x100.png" />
     <Content Include="Content\themes\base\images\ui-bg_flat_75_ffffff_40x100.png" />
@@ -400,14 +405,8 @@
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\201403060215481_linestrings.resx">
-      <DependentUpon>201403060215481_linestrings.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\201403062020117_pointype.resx">
-      <DependentUpon>201403062020117_pointype.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\201403062023017_pointype2.resx">
-      <DependentUpon>201403062023017_pointype2.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\201403170210378_initial.resx">
+      <DependentUpon>201403170210378_initial.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

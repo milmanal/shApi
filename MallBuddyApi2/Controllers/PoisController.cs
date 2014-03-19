@@ -13,6 +13,7 @@ using System.Web.Http.Cors;
 using System.Data.Entity.Core.Objects;
 using System.Data.Entity.Core;
 using Newtonsoft.Json;
+using MallBuddyApi2.Models.existing;
 
 namespace MallBuddyApi2.Controllers
 {
@@ -33,6 +34,27 @@ namespace MallBuddyApi2.Controllers
         {
             return storeRepository.GetAll().Concat(db.POIs.Where(x => !(x is Store)).Include("Location").Include("Location.Points").
                 Include("ImageList").Include("Location.Areas"));
+        }
+
+        // GET api/Poi
+        [Route("api/pois/slim")]
+        public IEnumerable<SimplePOI> GetPOIsCompact()
+        {
+            List<SimplePOI> poisToReturn = new List<SimplePOI>();
+            foreach (var poi in db.POIs.ToList())
+            {
+                SimplePOI simplePOI = new SimplePOI { Name = poi.Name, Categories = new List<int>(), };
+                if (poi is Store)
+                {
+                    simplePOI.Name2 = ((Store)poi).Name2;
+                    simplePOI.LogoUrl = ((Store)poi).LogoUrl;
+                    if (((Store)poi).Categories!=null)
+                        foreach (Category category in ((Store)poi).Categories)
+                            simplePOI.Categories.Add(category.Id);
+                }
+                poisToReturn.Add(simplePOI);
+            }
+            return poisToReturn;
         }
 
         [Route("api/pois/{poitype}")]

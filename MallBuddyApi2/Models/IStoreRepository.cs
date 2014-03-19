@@ -13,5 +13,7 @@ namespace MallBuddyApi2.Models
         Store Add(Store store);
         void Remove(int id);
         bool Update(Store store);
+        List<Store> GetContainerByLocation(string lon, string lat, int level);
+
     }
 }

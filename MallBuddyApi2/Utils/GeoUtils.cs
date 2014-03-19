@@ -25,6 +25,31 @@ namespace MallBuddyApi2.Utils
             return d;
         }
 
+        public static bool IsPointInPolygone(Point3D point, Polygone polygone)
+        {
+            int pointsCount = polygone.Points.Count;
+            bool c = false;
+            for (int i = 0, j = pointsCount - 1; i < pointsCount; j = i++)
+            {
+                if (((polygone.Points[i].Latitude > point.Latitude) != (polygone.Points[j].Latitude > point.Latitude)) &&
+                    (point.Longitude < (polygone.Points[j].Longitude - polygone.Points[i].Longitude) * (point.Latitude - polygone.Points[i].Latitude) / (polygone.Points[j].Latitude - polygone.Points[i].Latitude) + polygone.Points[i].Longitude))
+                    c = !c;
+            }
+            return c;
+        }
+
+        /*
+         * int pnpoly(int nvert, float *vertx, float *verty, float testx, float testy)
+{
+  int i, j, c = 0;
+  for (i = 0, j = nvert-1; i < nvert; j = i++) {
+    if ( ((verty[i]>testy) != (verty[j]>testy)) &&
+     (testx < (vertx[j]-vertx[i]) * (testy-verty[i]) / (verty[j]-verty[i]) + vertx[i]) )
+       c = !c;
+  }
+  return c;
+}
+         */
         /// <summary>
         /// Radius of the Earth in Kilometers.
         /// </summary>

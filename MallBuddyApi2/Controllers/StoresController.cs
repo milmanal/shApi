@@ -14,7 +14,7 @@ namespace MallBuddyApi2.Controllers
     [RoutePrefix("api/v1")]
     public class StoresController : ApiController
     {
-        static readonly IStoreRepository storeRepository = new StoreRepository(new ApplicationDbContext());
+        readonly IStoreRepository storeRepository = new StoreRepository(new ApplicationDbContext());
 
         // GET api/<controller>
         public IEnumerable<Store> Get()
@@ -31,17 +31,10 @@ namespace MallBuddyApi2.Controllers
             //return "value";
         }
 
-        public List<POI> GetByLocation(string lon, string lat, int level)
+        public List<Store> GetByLocation(string lon, string lat, int level)
         {
-            var levelStores = storeRepository.GetAll().Where(x => x.Floor == level);
-            DbGeometry point = DbGeometry.PointFromText("POINT (" + lon + " " + lat + ")", 4326);
-            List<POI> containers = new List<POI>();
-            foreach (Store s in levelStores)
-            {
-                if (s.Location.LocationG.Contains(point))
-                    containers.Add(s);
-            }
-            return containers;
+            return storeRepository.GetContainerByLocation(lon, lat, level);
+
         }
 
         // POST api/<controller>

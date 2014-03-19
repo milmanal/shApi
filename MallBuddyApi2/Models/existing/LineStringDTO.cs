@@ -27,6 +27,9 @@ namespace MallBuddyApi2.Models.existing
         [JsonIgnore]
         [IgnoreDataMemberAttribute]
         public bool IsAccessible { get; set; }
+        public ConnectorType connectorType { get; set; }
+        
+        public bool BiDirectional { get; set; }
 
         private double distance;
         public double Distance
@@ -59,9 +62,32 @@ namespace MallBuddyApi2.Models.existing
                 Target = this.Target,
                 Source = this.Source,
                 IsAccessible = this.IsAccessible,
-                Level = this.Level
+                BiDirectional = this.BiDirectional,
+                Level = this.Level,
+                connectorType = this.connectorType
             };
             return toRet;
+        }
+
+        public void setWktAndLocationG()
+        {
+            Wkt = "LINESTRING(" + Source.Longitude + " " + Source.Latitude + "," + Target.Longitude + " " + Target.Latitude + ")";
+            LocationG = DbGeometry.LineFromText(Wkt, 4326);
+        }
+
+        internal void setConnectorType()
+        {
+            if (string.IsNullOrEmpty(Source.Name))
+                connectorType = ConnectorType.PATH;
+            else if (Source.Name.ToLower().Contains("escbi"))
+                connectorType = ConnectorType.DOUBLE_ESCALATOR;
+            else if (Source.Name.ToLower().Contains("esc"))
+                connectorType = ConnectorType.SINGLE_ESCALATOR;
+            else if (Source.Name.ToLower().Contains("elevator"))
+                connectorType = ConnectorType.ELEVATOR;
+            else if (Source.Name.ToLower().Contains("stairs"))
+                connectorType = ConnectorType.STAIRS;
+            else connectorType = ConnectorType.PATH;
         }
     }
 }

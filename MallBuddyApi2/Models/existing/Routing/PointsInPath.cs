@@ -8,7 +8,7 @@ namespace MallBuddyApi2.Models.existing
 {
     public class PointsInPath
     {
-        IEnumerable<Point3D> points;
+        public List<Point3D> points { get; set; }
 
         public string toGeoJson()
         {

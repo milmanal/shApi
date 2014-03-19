@@ -9,6 +9,7 @@ using System.Text;
 using System.Xml.Serialization;
 using MallBuddyApi2.Models.existing;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MallBuddyApi2.Models
 {
@@ -24,10 +25,13 @@ namespace MallBuddyApi2.Models
         [JsonIgnore]
         [IgnoreDataMemberAttribute]
         public String Wkt { get; set; }
+        [JsonPropertyAttribute(NullValueHandling = NullValueHandling.Ignore)]
         public string Name { get; set; }
+        [JsonPropertyAttribute(NullValueHandling = NullValueHandling.Ignore)]
         public string Name2 { get; set; }
         [JsonIgnore]
         [IgnoreDataMemberAttribute]
+        [NotMappedAttribute]
         public List<Area> Areas { get; set; }
         [JsonIgnore]
         [IgnoreDataMemberAttribute]

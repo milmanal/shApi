@@ -10,7 +10,7 @@ using System.Reflection;
 
 namespace MallBuddyApi2.Models
 {
-    public class Store : POI, ISchedulable
+    public class Store : POI, ISchedulable, IHasEntrances
     {
         //private POI poi;
 
@@ -39,7 +39,6 @@ namespace MallBuddyApi2.Models
         //List<Product> products { get; set; }
         //List<Promotion> promotions { get; set; }
         //public List<Announcement> announcements { get; set; }
-        public virtual List<Point3D> Entrances { get; set; }
         //public List<Polygone> exits { get; set; }
         //public List<Area> Area { get; set; }
         // url from which the data was scraped not the official website
