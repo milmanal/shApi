@@ -77,15 +77,15 @@ namespace MallBuddyApi2.Models.existing
 
         internal void setConnectorType()
         {
-            if (string.IsNullOrEmpty(Source.Name))
+            if (string.IsNullOrEmpty(Target.Name))
                 connectorType = ConnectorType.PATH;
-            else if (Source.Name.ToLower().Contains("escbi"))
+            else if (Target.Name.ToLower().Contains("escbi"))
                 connectorType = ConnectorType.DOUBLE_ESCALATOR;
-            else if (Source.Name.ToLower().Contains("esc"))
+            else if (Target.Name.ToLower().Contains("esc"))
                 connectorType = ConnectorType.SINGLE_ESCALATOR;
-            else if (Source.Name.ToLower().Contains("elevator"))
+            else if (Target.Name.ToLower().Contains("elevator"))
                 connectorType = ConnectorType.ELEVATOR;
-            else if (Source.Name.ToLower().Contains("stairs"))
+            else if (Target.Name.ToLower().Contains("stairs"))
                 connectorType = ConnectorType.STAIRS;
             else connectorType = ConnectorType.PATH;
         }

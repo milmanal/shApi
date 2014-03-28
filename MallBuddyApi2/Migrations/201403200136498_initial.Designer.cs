@@ -13,7 +13,7 @@ namespace MallBuddyApi2.Migrations
         
         string IMigrationMetadata.Id
         {
-            get { return "201403170210378_initial"; }
+            get { return "201403200136498_initial"; }
         }
         
         string IMigrationMetadata.Source

@@ -126,8 +126,8 @@ namespace MallBuddyApi2.Migrations
                 JsonTextReader reader = new JsonTextReader(new StringReader(geojson));
                 reader.FloatParseHandling = FloatParseHandling.Decimal;
                 JObject jObject = Newtonsoft.Json.Linq.JObject.Load(reader);
-                if (jObject.ToString().Contains("32.075524865462157"))
-                    Debugger.Break();
+                //if (jObject.ToString().Contains("32.075524865462157"))
+                //    Debugger.Break();
                 List<JObject> level0 = new List<JObject>();
                 List<Point3D> badPolygonsPoints = new List<Point3D>();
                 List<JObject> polys = new List<JObject>();
@@ -141,8 +141,8 @@ namespace MallBuddyApi2.Migrations
 
                 foreach (JObject j in jObject["features"])
                 {
-                    if (j != null && j["properties"]["level"] != null && (j["properties"]["level"].ToString() == "2" | j["properties"]["level"].ToString() == "3"|
-                        j["properties"]["level"].ToString() == "4" | j["properties"]["level"].ToString() == "5"))
+                    if (j != null && j["properties"]["level"] != null && (j["properties"]["level"].ToString() != "1" & j["properties"]["level"].ToString() != "0"))
+                       // | j["properties"]["level"].ToString() == "4" | j["properties"]["level"].ToString() == "5"))
                     {
                         //level0.Add(j);
                         if (j != null && j["properties"]["connector"] != null && j["properties"]["connector"].ToString() == "true")
@@ -168,7 +168,7 @@ namespace MallBuddyApi2.Migrations
                         if (j != null && j["geometry"]["type"] != null && j["geometry"]["type"].ToString() == "LineString"
       && j["properties"]["geomType"]["Type"] != null && j["properties"]["geomType"]["Type"].ToString() == "Railing")
                         {
-                            extractLineString(j, lineStrings, pathPoints);
+                            extractLineString(j, lineStrings, pathPoints, labeledPoints);
                         }
                         if (j != null && j["geometry"]["type"] != null && j["geometry"]["type"].ToString() == "Polygon")
                             polys.Add(j);
@@ -260,6 +260,8 @@ namespace MallBuddyApi2.Migrations
         {
             foreach (var item in labeledPoints.Values)
             {
+                if (item.Name.ToLower().Contains("level"))
+                    continue;
                 double minToSource = double.MaxValue;
                 Point3D closestSource = null;
                 foreach (Point3D pointFromAll in pathPoints)
@@ -418,6 +420,7 @@ namespace MallBuddyApi2.Migrations
                 {
                     target = pathPoints.Find(x => x == target);
                     target.Name = destname;
+                    target.Type = Point3D.PointType.LEVEL_CONNECTION;
                 }
                 else
                     pathPoints.Add(target);
@@ -440,7 +443,7 @@ namespace MallBuddyApi2.Migrations
         }
 
 
-        private void extractLineString(JObject feature, List<LineStringDTO> lineStrings, List<Point3D> pathPoints)
+        private void extractLineString(JObject feature, List<LineStringDTO> lineStrings, List<Point3D> pathPoints, Dictionary<string,Point3D> labeledPoints)
         {
             LineStringDTO toAdd = new LineStringDTO();
             int level = int.Parse(feature["properties"]["level"].ToString());
@@ -460,7 +463,19 @@ namespace MallBuddyApi2.Migrations
                 string lat = Regex.Match(j.ToString(), "32\\.\\d+").Value;
                 wktsb.Append(lon + " " + lat + ",");
                 pointWkt.Append(lon + " " + lat + ")");
-                Point3D current = pathPoints.Find(x => x.Wkt == pointWkt.ToString() && x.Level == level);
+                Point3D current = null;
+                if(labeledPoints.ContainsKey(pointWkt.ToString()))
+                {
+                    current = labeledPoints[pointWkt.ToString()];
+                    current.Type = Point3D.PointType.PATH_POINT;
+                    if (!pathPoints.Contains(current))
+                        pathPoints.Add(current);
+                }
+                if (current == null)
+                    current = pathPoints.Find(x => x.Wkt == pointWkt.ToString() && x.Level == level);
+                else
+                    current = current;
+
                 if (current == null)
                 {
                     current = new Point3D();
@@ -489,6 +504,8 @@ namespace MallBuddyApi2.Migrations
             toAdd.LocationG = DbGeometry.LineFromText(toAdd.Wkt, 4326);
             toAdd.Distance = GeoUtils.GetHaversineDistance(toAdd.Source, toAdd.Target);
             toAdd.BiDirectional = true;
+            //if (toAdd.Target.Longitude == 34.7745353108864M)
+             //   Debugger.Break();
             toAdd.setConnectorType();
             lineStrings.Add(toAdd);
         }
@@ -509,6 +526,8 @@ namespace MallBuddyApi2.Migrations
             int level = int.Parse(feature["properties"]["level"].ToString());
             //bool isAccessible = Boolean.Parse(feature["properties"]["accessible"].ToString());
             toReturn.Level = level;
+            //if (level == 6)
+           //    Debugger.Break();
             StringBuilder wktsb = new StringBuilder("POLYGON ((");
             List<Point3D> labeledPointsFound = new List<Point3D>();
             foreach (JArray j in feature["geometry"]["coordinates"][0])
@@ -518,6 +537,8 @@ namespace MallBuddyApi2.Migrations
                 string lat = Regex.Match(j.ToString(), "32\\.\\d+").Value;
                 wktsb.Append(lon + " " + lat + ",");
                 pointWkt.Append(lon + " " + lat + ")");
+                //if (pointWkt.ToString() == "POINT (34.776239992664784 32.07554239891567)")
+                  //  Debugger.Break();
                 if (!toReturn.Points.Exists(Point3D => Point3D.Wkt == pointWkt.ToString()))
                 {
                     if (labeledPoints.ContainsKey(pointWkt.ToString()))
@@ -545,9 +566,9 @@ namespace MallBuddyApi2.Migrations
                     polygone = DbGeometry.FromText(SqlGeometry.STGeomFromText(new SqlChars(polygone.AsText()), 4326).MakeValid().STAsText().ToSqlString().ToString(), 4326);
                 }
 
-                foreach (Point3D point in badPolygonsPoints)
-                    if (polygone.Contains(point.LocationG))
-                        return;
+                //foreach (Point3D point in badPolygonsPoints)
+                   // if (polygone.Contains(point.LocationG))
+                       // return;
                 toReturn.LocationG = polygone;
             }
             catch (Exception ex)
@@ -569,8 +590,11 @@ namespace MallBuddyApi2.Migrations
                         if (!labeledPointsFound[0].Areas[i].AreaID.Equals(labeledPointsFound[1].Areas[i].AreaID))
                             return;
             }
-            Point3D labeledPoint = labeledPointsFound[0];
-
+            Point3D labeledPoint = null;
+            if ((labeledPoint = labeledPointsFound.FirstOrDefault(x => x.Name.ToLower().Contains("level"))) == null)
+                labeledPoint = labeledPointsFound[0];
+            else
+                labeledPoint = labeledPoint;
             if (labeledPoint != null)
             {
                 //if (labeledPoint.Name != null && labeledPoint.Name.Contains("נייק"))
@@ -584,8 +608,10 @@ namespace MallBuddyApi2.Migrations
                     poi.Type = POI.POIType.ENTRANCE;
                 if (labeledPoint.Name.ToLower().Contains("toilet") | labeledPoint.Name.ToLower().Contains("wc"))
                     poi.Type = POI.POIType.WC;
-                if (labeledPoint.Name.ToLower().Contains("zone"))
-                    poi.Type = POI.POIType.ZONE;
+                if (labeledPoint.Name.ToLower().Contains("deadzone"))
+                    poi.Type = POI.POIType.DEADZONE;
+                if (labeledPoint.Name.ToLower().Contains("level"))
+                    poi.Type = POI.POIType.HOSTED_LEVEL;
             }
             if (poi.Type != null)
             {
@@ -637,6 +663,8 @@ namespace MallBuddyApi2.Migrations
         {
             Point3D toReturn = new Point3D();
             toReturn.Level = int.Parse(feature["properties"]["level"].ToString());
+            //if (toReturn.Level == 6)
+             //   Debugger.Break();
             toReturn.IsAccessible = Boolean.Parse(feature["properties"]["accessible"].ToString());
             StringBuilder wktsb = new StringBuilder("POINT (");
             var j = feature["geometry"]["coordinates"];
@@ -647,6 +675,8 @@ namespace MallBuddyApi2.Migrations
             toReturn.Wkt = wktsb.ToString();
             toReturn.LocationG = DbGeometry.PointFromText(wktsb.ToString(), 4326);
             toReturn.Name = feature["properties"]["attrs"]["name"].ToString();
+            //if (toReturn.Name.ToLower().Contains("level"))
+              //  Debugger.Break();
             toReturn.Latitude = Decimal.Parse(lat);
             toReturn.Longitude = Decimal.Parse(lon);
             if (feature["properties"]["attrs"]["Name2"] != null)
@@ -656,11 +686,17 @@ namespace MallBuddyApi2.Migrations
             //if (toReturn.Name != null && toReturn.Name.Contains("כלי זמר"))
             //    Debugger.Break();
             toReturn.Areas = new List<Area>();
-            if (feature["properties"]["attrs"]["AreaID"] != null && !feature["properties"]["attrs"]["AreaID"].ToString().Equals(""))
+            if ((feature["properties"]["attrs"]["AreaID"] != null && !feature["properties"]["attrs"]["AreaID"].ToString().Equals(""))
+              | (feature["properties"]["attrs"]["AREAID"] != null && !feature["properties"]["attrs"]["AREAID"].ToString().Equals("")))
             {
-                if (feature["properties"]["attrs"]["AreaID"].ToString() != "")
+                if (feature["properties"]["attrs"]["AreaID"] != null && !feature["properties"]["attrs"]["AreaID"].ToString().Equals(""))
                 {
                     Area area = new Area(feature["properties"]["attrs"]["AreaID"].ToString());
+                    toReturn.Areas.Add(area);
+                }
+                if (feature["properties"]["attrs"]["AREAID"] != null && !feature["properties"]["attrs"]["AREAID"].ToString().Equals(""))
+                {
+                    Area area = new Area(feature["properties"]["attrs"]["AREAID"].ToString());
                     toReturn.Areas.Add(area);
                 }
                 int index = 2;

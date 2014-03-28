@@ -1,4 +1,5 @@
 ﻿using MallBuddyApi2.Models;
+using MallBuddyApi2.Utils;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity.Spatial;
@@ -11,7 +12,7 @@ using System.Web.Http.Cors;
 namespace MallBuddyApi2.Controllers
 {
     [EnableCors(origins: "*", headers: "*", methods: "*")]
-    [RoutePrefix("api/v1")]
+    //[RoutePrefix("api/v1")]
     public class StoresController : ApiController
     {
         readonly IStoreRepository storeRepository = new StoreRepository(new ApplicationDbContext());
@@ -30,9 +31,17 @@ namespace MallBuddyApi2.Controllers
             return store;
             //return "value";
         }
-
+        [Route("api/stores/getbylocation")]
         public List<Store> GetByLocation(string lon, string lat, int level)
         {
+            int parsedLon;
+            if (int.TryParse(lon, out parsedLon))
+            {
+                int parsedLat = int.Parse(lat);
+                Point3D point = GeoUtils.pixelPoint2LongLat(parsedLat, parsedLon, level);
+                return storeRepository.GetContainerByLocation(point.Longitude.ToString(), point.Latitude.ToString(), level);
+
+            }
             return storeRepository.GetContainerByLocation(lon, lat, level);
 
         }

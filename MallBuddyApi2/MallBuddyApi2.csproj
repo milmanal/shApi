@@ -215,10 +215,12 @@
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\MapsController.cs" />
     <Compile Include="Controllers\RoutingController.cs" />
-    <Compile Include="Migrations\201403170210378_initial.cs" />
-    <Compile Include="Migrations\201403170210378_initial.Designer.cs">
-      <DependentUpon>201403170210378_initial.cs</DependentUpon>
+    <Compile Include="Migrations\201403200136498_initial.cs" />
+    <Compile Include="Migrations\201403200136498_initial.Designer.cs">
+      <DependentUpon>201403200136498_initial.cs</DependentUpon>
     </Compile>
+    <Compile Include="Models\existing\Routing\RoutingPathByFloor.cs" />
+    <Compile Include="Models\existing\Routing\RoutingPoint.cs" />
     <Compile Include="Models\existing\SimplePOI.cs" />
     <Compile Include="Models\existing\FloorMap.cs" />
     <Compile Include="Models\existing\IHasEntrances.cs" />
@@ -344,8 +346,18 @@
     <None Include="Properties\PublishProfiles\shimeba1.pubxml" />
     <None Include="Properties\PublishProfiles\shimeba2 %282%29.pubxml" />
     <None Include="Properties\PublishProfiles\shimeba2 %283%29.pubxml" />
+    <None Include="Properties\PublishProfiles\shimeba2 %284%29.pubxml" />
     <None Include="Properties\PublishProfiles\shimeba2.pubxml" />
     <None Include="Scripts\jquery-1.8.2.intellisense.js" />
+    <Content Include="Maps\level2.jpg" />
+    <EmbeddedResource Include="Maps\level0.jpg">
+      <BrowseToURL>Maps\level0.jpg</BrowseToURL>
+    </EmbeddedResource>
+    <Content Include="Maps\level1.jpg" />
+    <Content Include="Maps\level3.jpg" />
+    <Content Include="Maps\level4.jpg" />
+    <Content Include="Maps\level5.jpg" />
+    <Content Include="Maps\level6.jpg" />
     <Content Include="Properties\PublishProfiles\shimeba1.pubxml.user" />
     <Content Include="Scripts\jquery-1.8.2.js" />
     <Content Include="Scripts\jquery-1.8.2.min.js" />
@@ -364,6 +376,15 @@
     <Content Include="SqlServerSpatial110.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <EmbeddedResource Include="Views\Home\Maps\level0.jpg">
+      <BrowseToURL>Home\Maps\level0.jpg</BrowseToURL>
+    </EmbeddedResource>
+    <Content Include="Views\Home\Maps\level1.jpg" />
+    <Content Include="Views\Home\Maps\level2.jpg" />
+    <Content Include="Views\Home\Maps\level3.jpg" />
+    <Content Include="Views\Home\Maps\level4.jpg" />
+    <Content Include="Views\Home\Maps\level5.jpg" />
+    <Content Include="Views\Home\Maps\level6.jpg" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -394,6 +415,7 @@
     <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\Shared\Error.cshtml" />
     <Content Include="Views\Shared\_Layout.cshtml" />
+    <Content Include="Views\ViewMap.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
@@ -405,8 +427,8 @@
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\201403170210378_initial.resx">
-      <DependentUpon>201403170210378_initial.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\201403200136498_initial.resx">
+      <DependentUpon>201403200136498_initial.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

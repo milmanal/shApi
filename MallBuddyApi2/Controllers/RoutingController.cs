@@ -23,25 +23,27 @@ namespace MallBuddyApi2.Controllers
         // GET api/routing
         public RoutingPath GetRoute(string lon1, string lat1, int level1, string lon2, string lat2, int level2)
         {
+            using (ApplicationDbContext myContext = new ApplicationDbContext())
+            {
+                RoutingPath totalPath = GetRoutingPath(myContext, lon1, lat1, level1, lon2, lat2, level2);
+                //Graph graph = new Graph(edges);
+                //RoutingPath route = graph.GetDijkstraPath(source, target);
+                //Point3D source = new Point3D { Latitude = Decimal.Parse(lat1), Longitude = Decimal.Parse(lon1), Level = level1 };
+                //Point3D dest = new Point3D { Latitude = Decimal.Parse(lat2), Longitude = Decimal.Parse(lon2), Level = level2 };
+                //RoutingPath allnet = new RoutingPath{Routingsteps = new List<RoutingStep>()};
+                // foreach (var step in db.LineStrings)
+                //     allnet.Routingsteps.Add(new RoutingStep { Source = step.Source, Destination = step.Target, Distance = step.Distance });
+                //string geojson = allnet.ToGeojson();
+                //string geojson = totalPath.ToGeojson();
+                //StringContent sc = new StringContent(geojson);
+                //sc.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-            RoutingPath totalPath = GetRoutingPath(lon1, lat1, level1, lon2, lat2, level2);
-            //Graph graph = new Graph(edges);
-            //RoutingPath route = graph.GetDijkstraPath(source, target);
-            //Point3D source = new Point3D { Latitude = Decimal.Parse(lat1), Longitude = Decimal.Parse(lon1), Level = level1 };
-            //Point3D dest = new Point3D { Latitude = Decimal.Parse(lat2), Longitude = Decimal.Parse(lon2), Level = level2 };
-            //RoutingPath allnet = new RoutingPath{Routingsteps = new List<RoutingStep>()};
-           // foreach (var step in db.LineStrings)
-           //     allnet.Routingsteps.Add(new RoutingStep { Source = step.Source, Destination = step.Target, Distance = step.Distance });
-            //string geojson = allnet.ToGeojson();
-            //string geojson = totalPath.ToGeojson();
-            //StringContent sc = new StringContent(geojson);
-            //sc.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                //HttpResponseMessage resp = new HttpResponseMessage();
+                //resp.Content = sc;
 
-            //HttpResponseMessage resp = new HttpResponseMessage();
-            //resp.Content = sc;
-
-            //return resp;
+                //return resp;
                 return totalPath;
+            }
         }
 
         private List<GraphDataItem> GetAdditionalEdgeOfSourceOrTargetToNearest(ApplicationDbContext db, List<IHasEntrances> storeContainers, Point3D point, IQueryable<Point3D> pathPoints, bool isTarget)
@@ -102,93 +104,99 @@ namespace MallBuddyApi2.Controllers
             return toReturn;
         }
 
-        private RoutingPath GetRoutingPath(string lon1, string lat1, int level1, string lon2, string lat2, int level2)
+        private RoutingPath GetRoutingPath(ApplicationDbContext myContext, string lon1, string lat1, int level1, string lon2, string lat2, int level2)
         {
             List<GraphDataItem> dtEdges = new List<GraphDataItem>();
             RoutingPath totalPath = null;
 
-            using (ApplicationDbContext myContext = new ApplicationDbContext())
+            Point3D sourceToFind = new Point3D { Latitude = Decimal.Parse(lat1), Type = Point3D.PointType.PATH_POINT, Level = level1, Longitude = Decimal.Parse(lon1) };
+            Point3D targetToFind = new Point3D { Latitude = Decimal.Parse(lat2), Type = Point3D.PointType.PATH_POINT, Level = level2, Longitude = Decimal.Parse(lon2) };
+            Point3D source = myContext.Points.ToList().Where(x => x.Level == level1 && x.Latitude == sourceToFind.Latitude && x.Longitude == sourceToFind.Longitude).FirstOrDefault();
+            Point3D target = myContext.Points.ToList().Where(x => x.Level == level2 && x.Latitude == targetToFind.Latitude && x.Longitude == targetToFind.Longitude).FirstOrDefault();
+            if (source == null)
             {
-                Point3D sourceToFind = new Point3D { Latitude = Decimal.Parse(lat1), Type = Point3D.PointType.PATH_POINT, Level = level1, Longitude = Decimal.Parse(lon1) };
-                Point3D targetToFind = new Point3D { Latitude = Decimal.Parse(lat2), Type = Point3D.PointType.PATH_POINT, Level = level2, Longitude = Decimal.Parse(lon2) };
-                Point3D source = myContext.Points.ToList().Where(x => x.Level == level1 && x.Latitude == sourceToFind.Latitude && x.Longitude == sourceToFind.Longitude).FirstOrDefault();
-                Point3D target = myContext.Points.ToList().Where(x => x.Level == level2 && x.Latitude == targetToFind.Latitude && x.Longitude == targetToFind.Longitude).FirstOrDefault();
-                if (source == null)
-                {
-                    source = sourceToFind;
-                    source.setWktAndGeometry();
-                }
-                if (target == null)
-                {
-                    target = targetToFind;
-                    target.setWktAndGeometry();
-                }
-                var pathPoints = myContext.Points.Where(x => x.Type == Point3D.PointType.PATH_POINT);
-                //double minToTarget = double.MaxValue;
-                //Point3D closestTarget = null;
-                foreach (LineStringDTO item in myContext.LineStrings.Include("Source").Include("Target").ToList())
-                {
-                    //if (item.connectorType != ConnectorType.NONE)
-                      //  System.Diagnostics.Debugger.Break();
-                    dtEdges.Add(new GraphDataItem {Name = item.Name, Cost = item.Distance, EdgeID = (int)item.Id, IsReverse = item.BiDirectional, ReverseCost = item.BiDirectional ? item.Distance : double.PositiveInfinity,
-                        SourceVertexID = (int)item.Source.Id, TargetVertexID = (int)item.Target.Id });
-                    //edges.Add(item.toGeneric());
-                }
-                List<IHasEntrances> sourceContainers = new List<IHasEntrances>();
-                List<IHasEntrances> targetContainers = new List<IHasEntrances>();
-
-                //GetStoreContainersOfPoint(myContext, source, target, sourceContainers, targetContainers);
-
-                List<POI> containersSource = poisRep.GetContainerByLocation(lon1, lat1, level1);
-                foreach (var item in containersSource)
-                {
-                    if (item is IHasEntrances)
-                        sourceContainers.Add((IHasEntrances)item);
-                }
-                List<POI> containersTarget = poisRep.GetContainerByLocation(lon2, lat2, level2);
-                foreach (var item in containersTarget)
-                {
-                    if (item is IHasEntrances)
-                        targetContainers.Add((IHasEntrances)item);
-                }
-                //point is inside store - need to add the edge to the entrance first
-                List<GraphDataItem> edgesFromSourceToGraph = GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, sourceContainers, source, pathPoints, false);
-                if (edgesFromSourceToGraph == null)
-                    return getRoutingPathFromDataGraphItems(myContext, source, target, dtEdges, true);
-                else
-                    dtEdges.AddRange(edgesFromSourceToGraph);
-
-                List<GraphDataItem> edgesFromGraphToTarget = GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, sourceContainers, source, pathPoints, false);
-                if (edgesFromGraphToTarget == null)
-                    return getRoutingPathFromDataGraphItems(myContext, source, target, dtEdges, true);
-                else
-                    dtEdges.AddRange(edgesFromGraphToTarget);
-                //dtEdges.AddRange(GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, targetContainers, target, pathPoints, true));
-
-                //LineString3D<Point3D> targetToNearestPath = new LineString3D<Point3D>
-                //{
-                //    Level = target.Level,
-                //    Source = target,
-                //    Target = closestTarget,
-                //    Distance = minToTarget
-                //};
-                //targetToNearestPath.setWktAndLocationG();
-                ////List<Point3D> fromandTo = new List<Point3D> { source, target };
-                ////pathPoints.Concat(fromandTo);
-                ////List<LineString3D<Point3D>> edges = new List<LineString3D<Point3D>>();
-
-                //dtEdges.Add(new GraphDataItem { Cost = targetToNearestPath.Distance, EdgeID = (int)targetToNearestPath.Id, IsReverse = false, SourceVertexID = (int)targetToNearestPath.Source.Id, TargetVertexID = (int)targetToNearestPath.Target.Id });
-                //edges.Add(sourceToNearestPath);
-                //edges.Add(targetToNearestPath);
-                Graph2 graph2 = new Graph2(dtEdges);
-                GraphSearchResult result = graph2.GetShortestPath((int)source.Id, (int)target.Id);
-                if (result == null || result.Count() == 0)
-                {
-                    //totalPath = getRoutingPathFromDataGraphItems(myContext, source, target, dtEdges, true);
-                }
-                else
-                    totalPath = getRoutingPathFromDataGraphItems(myContext, source, target, result, false);
+                source = sourceToFind;
+                source.setWktAndGeometry();
             }
+            if (target == null)
+            {
+                target = targetToFind;
+                target.setWktAndGeometry();
+            }
+            var pathPoints = myContext.Points.Where(x => x.Type == Point3D.PointType.PATH_POINT | x.Type == Point3D.PointType.LEVEL_CONNECTION);
+            //double minToTarget = double.MaxValue;
+            //Point3D closestTarget = null;
+            foreach (LineStringDTO item in myContext.LineStrings.Include("Source").Include("Target").ToList())
+            {
+                //if (item.connectorType != ConnectorType.NONE)
+                //  System.Diagnostics.Debugger.Break();
+                dtEdges.Add(new GraphDataItem
+                {
+                    Name = item.Name,
+                    Cost = item.Distance,
+                    EdgeID = (int)item.Id,
+                    IsReverse = item.BiDirectional,
+                    ReverseCost = item.BiDirectional ? item.Distance : double.PositiveInfinity,
+                    SourceVertexID = (int)item.Source.Id,
+                    TargetVertexID = (int)item.Target.Id
+                });
+                //edges.Add(item.toGeneric());
+            }
+            List<IHasEntrances> sourceContainers = new List<IHasEntrances>();
+            List<IHasEntrances> targetContainers = new List<IHasEntrances>();
+
+            //GetStoreContainersOfPoint(myContext, source, target, sourceContainers, targetContainers);
+
+            List<POI> containersSource = poisRep.GetContainerByLocation(lon1, lat1, level1);
+            foreach (var item in containersSource)
+            {
+                if (item is IHasEntrances)
+                    sourceContainers.Add((IHasEntrances)item);
+            }
+            List<POI> containersTarget = poisRep.GetContainerByLocation(lon2, lat2, level2);
+            foreach (var item in containersTarget)
+            {
+                if (item is IHasEntrances)
+                    targetContainers.Add((IHasEntrances)item);
+            }
+            //point is inside store - need to add the edge to the entrance first
+            List<GraphDataItem> edgesFromSourceToGraph = GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, sourceContainers, source, pathPoints, false);
+            if (edgesFromSourceToGraph == null)
+                return getRoutingPathFromDataGraphItems(myContext, source, target, dtEdges, true);
+            else
+                dtEdges.AddRange(edgesFromSourceToGraph);
+
+            List<GraphDataItem> edgesFromGraphToTarget = GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, targetContainers, target, pathPoints, true);
+            if (edgesFromGraphToTarget == null)
+                return getRoutingPathFromDataGraphItems(myContext, source, target, dtEdges, true);
+            else
+                dtEdges.AddRange(edgesFromGraphToTarget);
+            //dtEdges.AddRange(GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, targetContainers, target, pathPoints, true));
+
+            //LineString3D<Point3D> targetToNearestPath = new LineString3D<Point3D>
+            //{
+            //    Level = target.Level,
+            //    Source = target,
+            //    Target = closestTarget,
+            //    Distance = minToTarget
+            //};
+            //targetToNearestPath.setWktAndLocationG();
+            ////List<Point3D> fromandTo = new List<Point3D> { source, target };
+            ////pathPoints.Concat(fromandTo);
+            ////List<LineString3D<Point3D>> edges = new List<LineString3D<Point3D>>();
+
+            //dtEdges.Add(new GraphDataItem { Cost = targetToNearestPath.Distance, EdgeID = (int)targetToNearestPath.Id, IsReverse = false, SourceVertexID = (int)targetToNearestPath.Source.Id, TargetVertexID = (int)targetToNearestPath.Target.Id });
+            //edges.Add(sourceToNearestPath);
+            //edges.Add(targetToNearestPath);
+            Graph2 graph2 = new Graph2(dtEdges);
+            GraphSearchResult result = graph2.GetShortestPath((int)source.Id, (int)target.Id);
+            if (result == null || result.Count() == 0)
+            {
+                //totalPath = getRoutingPathFromDataGraphItems(myContext, source, target, dtEdges, true);
+            }
+            else
+                totalPath = getRoutingPathFromDataGraphItems(myContext, source, target, result, false);
+
             return totalPath;
         }
 
@@ -304,18 +312,43 @@ namespace MallBuddyApi2.Controllers
         [Route("api/routing/geojson")]
         public HttpResponseMessage GetRouteGeoJson(string lon1, string lat1, int level1, string lon2, string lat2, int level2)
         {
+            using (ApplicationDbContext context = new ApplicationDbContext())
+            {
+                RoutingPath totalPath = GetRoutingPath(context,lon1, lat1, level1, lon2, lat2, level2);
 
-            RoutingPath totalPath = GetRoutingPath(lon1, lat1, level1, lon2, lat2, level2);
-            
-            //string geojson = allnet.ToGeojson();
-            string geojsonString = totalPath.ToGeojson();
-            StringContent sc = new StringContent(geojsonString);
-            sc.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                //string geojson = allnet.ToGeojson();
+                string geojsonString = totalPath.ToGeojson();
+                StringContent sc = new StringContent(geojsonString);
+                sc.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-            HttpResponseMessage resp = new HttpResponseMessage();
-            resp.Content = sc;
+                HttpResponseMessage resp = new HttpResponseMessage();
+                resp.Content = sc;
 
-            return resp;
+                return resp;
+            }
+        }
+
+        [Route("api/routing/byfloor")]
+        public RoutingPathByFloor GetRouteByFloor(string lon1, string lat1, int level1, string lon2, string lat2, int level2)
+        {
+            using (ApplicationDbContext context = new ApplicationDbContext())
+            {
+                RoutingPath totalPath = GetRoutingPath(context, lon1, lat1, level1, lon2, lat2, level2);
+                Dictionary<int, List<POI>> ada = new Dictionary<int, List<POI>>();
+                int startlevel = Math.Min(level1, level2);
+                int endlevel = Math.Max(level1, level2);
+                var results = context.POIs.Include("Location").Where(x => x.Type == POI.POIType.HOSTED_LEVEL & x.Location.Level >= startlevel & x.Location.Level <= endlevel);
+                foreach (var item in results)
+                {
+                    if (!ada.ContainsKey(item.Location.Level))
+                        ada[item.Location.Level] = new List<POI>();
+                    ada[item.Location.Level].Add(item);
+                }
+
+                //ada = context.POIs.Include("Location").Where(x=>x.Type == POI.POIType.HOSTED_LEVEL & x.Location.Level>=startlevel& x.Location.Level<=endlevel).GroupBy(x => x.Location.Level).ToDictionary(x=>x.Key, x=>x.ToList());
+                RoutingPathByFloor routingPathByFloor = totalPath.ToRoutingPathByFloor(ada);
+                return routingPathByFloor;
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ using System.Data.Entity.Core.Objects;
 using System.Data.Entity.Core;
 using Newtonsoft.Json;
 using MallBuddyApi2.Models.existing;
+using MallBuddyApi2.Utils;
 
 namespace MallBuddyApi2.Controllers
 {
@@ -22,11 +23,13 @@ namespace MallBuddyApi2.Controllers
     {
         private ApplicationDbContext db;// = new ApplicationDbContext();
         static IStoreRepository storeRepository;// = new StoreRepository(db);
+        readonly IPoisRepository poisRepository;// = new PoisRepository(new ApplicationDbContext());
 
         public PoisController()
         {
             db = new ApplicationDbContext();
             storeRepository = new StoreRepository(db);
+            poisRepository = new PoisRepository(db);
         }
         // GET api/Poi
         [Route("api/pois")]
@@ -109,6 +112,21 @@ namespace MallBuddyApi2.Controllers
             return Ok(poi);
         }
 
+        [Route("api/pois/getbylocation")]
+        public List<POI> GetByLocation(string lon, string lat, int level)
+        {
+            //IPoisRepository poisRepository = new PoisRepository();
+            int parsedLon;
+            if (int.TryParse(lon, out parsedLon))
+            {
+                int parsedLat = int.Parse(lat);
+                Point3D point = GeoUtils.pixelPoint2LongLat(parsedLat, parsedLon, level);
+                return poisRepository.GetContainerByLocation(point.Longitude.ToString(), point.Latitude.ToString(), level);
+
+            }
+            return poisRepository.GetContainerByLocation(lon, lat, level);
+
+        }
         //[Route("api/pois/{id:int}")]
         //[AcceptVerbs("Patch")]
         //public void PatchPOI(int id, Delta<POI> value)

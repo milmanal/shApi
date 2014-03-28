@@ -55,7 +55,7 @@ namespace MallBuddyApi2.Controllers
             List<POI> containers = new List<POI>();
             using (var context = new ApplicationDbContext())
             {
-                var levelStores = context.Stores.Include("Location").Where(x => x.Floor == level);
+                var levelStores = context.POIs.Include("Location").Where(x => x.Location.Level == level);
                 //int count = levelStores.Count();
 
                 DbGeometry point = DbGeometry.PointFromText("POINT (" + lon + " " + lat + ")", 4326);

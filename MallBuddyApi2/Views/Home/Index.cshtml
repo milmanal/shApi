@@ -1,45 +1,71 @@
-﻿<div id="body">
-    <section class="featured">
-        <div class="content-wrapper">
-            <hgroup class="title">
-                <h1>Welcome to ASP.NET Web API!</h1>
-                <h2>Modify the code in this template to jump-start your ASP.NET Web API development.</h2>
-            </hgroup>
-            <p>
-                ASP.NET Web API allows you to expose your applications, data and services to the
-                web directly over HTTP.
-            </p>
-            <p>
-                To learn more about ASP.NET Web API visit the
-                <a href="http://go.microsoft.com/fwlink/?LinkID=238195" title="ASP.NET Web API Website">ASP.NET Web API Website</a>.
-                The page features <mark>videos, tutorials, and samples</mark> to help you get the most from ASP.NET Web API.
-                If you have any questions about ASP.NET Web API, visit
-                <a href="http://go.microsoft.com/fwlink/?LinkID=238196" title="ASP.NET Web API Forum">our forums</a>.
-            </p>
-        </div>
-    </section>
-    <section class="content-wrapper main-content clear-fix">
-        <h3>We suggest the following steps:</h3>
-        <ol class="round">
-            <li class="one">
-                <h5>Getting Started</h5>
-                ASP.NET Web API is a framework that makes it easy to build HTTP services that reach
-                a broad range of clients, including browsers and mobile devices. ASP.NET Web API
-                is an ideal platform for building RESTful applications on the .NET Framework.
-                <a href="http://go.microsoft.com/fwlink/?LinkId=245160">Learn more…</a>
-            </li>
+﻿@{  var imagePath = "";
+  if (Request["photoChoice"] != null)
+  {
+      imagePath = @"/Maps/" + Request["photoChoice"];
+  }
+}
+@section scripts {
+@*<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>*@
 
-            <li class="two">
-                <h5>Add NuGet packages and jump-start your coding</h5>
-                NuGet makes it easy to install and update free libraries and tools.
-                <a href="http://go.microsoft.com/fwlink/?LinkId=245161">Learn more…</a>
-            </li>
-            <li class="three">
-                <h5>Find Web Hosting</h5>
-                You can easily find a web hosting company that offers the right mix of features
-                and price for your applications.
-                <a href="http://go.microsoft.com/fwlink/?LinkId=245164">Learn more…</a>
-            </li>
-        </ol>
-    </section>
+    <script>
+
+        function mapclicked(event) {
+
+            //var method = $('#method').val();
+            var pos_x = 3*(event.offsetX?(event.offsetX):event.pageX-document.getElementById("pointer_div").offsetLeft);
+            var pos_y = 3*(event.offsetY?(event.offsetY):event.pageY-document.getElementById("pointer_div").offsetTop);
+            var level1 = document.getElementById("levelMap").getAttribute("src");
+            level1 = level1[level1.length - 5];
+
+            var serviceUrl = '/api/pois/GetByLocation?lon='+pos_y+'&lat='+pos_x+'&level='+level1; // Replace with your URI.
+
+            $.ajax({
+                type: "GET",
+                url: serviceUrl,
+                parameters: {lon:pos_x,lat:pos_y, level:level1},
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                
+
+            }).success(function (data) {
+                $.each(data, function (index, element) {
+                    //window.alert(element.name);
+                    document.getElementById("result").innerHTML = element.name;//+element.entrances[0].areaID;
+                });
+
+            }).error(function (jqXHR, textStatus, errorThrown) {
+                $('#value1').text(jqXHR.responseText || textStatus);
+            });
+        }
+    </script>
+}
+<div id="body">
+    <form method="post" action="">
+        <div>
+            I want to see:
+            <select name="photoChoice">
+                <option value="level0.jpg">Level 0</option>
+                <option value="level1.jpg">Level 1</option>
+                <option value="level2.jpg">Level 2</option>
+                <option value="level3.jpg">Level 3</option>
+                <option value="level4.jpg">Level 4</option>
+                <option value="level5.jpg">Level 5</option>
+                <option value="level6.jpg">Level 6</option>
+
+            </select>
+            &nbsp;
+            <input type="submit" value="Submit" />
+            
+            <div id="result">
+                Store Clicked: 
+            </div>
+        </div>
+        <div id="pointer_div" onclick="mapclicked(event)" style="width: 621px; height: 857px;">
+            @if (imagePath != "")
+            {
+                <img id="levelMap" src="@imagePath" style="width: 621px; height: 857px; position: relative; z-index: 2; " />
+            }
+        </div>
+    </form>
 </div>
