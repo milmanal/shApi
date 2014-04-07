@@ -46,15 +46,7 @@ namespace MallBuddyApi2.Controllers
             List<SimplePOI> poisToReturn = new List<SimplePOI>();
             foreach (var poi in db.POIs.ToList())
             {
-                SimplePOI simplePOI = new SimplePOI { Name = poi.Name, Categories = new List<int>(), };
-                if (poi is Store)
-                {
-                    simplePOI.Name2 = ((Store)poi).Name2;
-                    simplePOI.LogoUrl = ((Store)poi).LogoUrl;
-                    if (((Store)poi).Categories!=null)
-                        foreach (Category category in ((Store)poi).Categories)
-                            simplePOI.Categories.Add(category.Id);
-                }
+                SimplePOI simplePOI = new SimplePOI(poi);
                 poisToReturn.Add(simplePOI);
             }
             return poisToReturn;
@@ -81,8 +73,7 @@ namespace MallBuddyApi2.Controllers
             {
                 case POI.POIType.STORE:
                     {
-                        return db.POIs.OfType<Store>().Include(x => x.ContactDetails)
-                            .Include(x => x.Schedule).Include(x => x.Entrances).Include(x => x.Categories)
+                        return db.POIs.OfType<Store>().Include(x => x.Schedule).Include(x => x.Entrances).Include(x => x.Categories)
                             .Include("Location").Include("Location.Points").
                             Include("ImageList").Include("Location.Areas");
                     }
@@ -190,8 +181,8 @@ namespace MallBuddyApi2.Controllers
             {
                 poi = JsonConvert.DeserializeObject<Store>(content, settings);
                 poi.Type = POI.POIType.STORE;
-                if (((Store)poi).ContactDetails != null && ((Store)poi).ContactDetails.PoiName == null)
-                    ((Store)poi).ContactDetails.PoiName = poi.Name;
+                //if (((Store)poi).ContactDetails != null && ((Store)poi).ContactDetails.PoiName == null)
+                //    ((Store)poi).ContactDetails.PoiName = poi.Name;
             }
             catch (Exception)
             {

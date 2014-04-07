@@ -34,7 +34,8 @@ namespace MallBuddyApi2.Models
         //public List<int> floors { get; set; }
         public int Floor { get; set; }
         //public List<Category> categories { get; set; }
-        public virtual ContactDetails ContactDetails { get; set; }
+        //public virtual ContactDetails ContactDetails { get; set; }
+        public string Phone { get; set; }
         public virtual List<OpeningHoursSpan> Schedule { get; set; }
         //List<Product> products { get; set; }
         //List<Promotion> promotions { get; set; }
@@ -58,8 +59,20 @@ namespace MallBuddyApi2.Models
         //    set { }
         //}
 
+        public enum StoreCategory { WOMEN_FASHION, MEN_FASHION, GATE, TIOLETT, KIDS, SHOES, ATM, PARKING, FOOD_COFFEE, HEALTH, LIFESTYLE, UNDERWEAR
+            , GIFTS, ELECTRIC, CELLULAR, OPTICS, ACCESSORIES, SPORTS, MISC}
+        public static Dictionary<string, string> HebrewMappings;
+        public static string[] HebrewCategories = {"אופנת נשים", "אופנת גברים", "שערים", "שירותים",
+"ילדים", "הנעלה", "כספומט", "חניון",
+"אוכל ושתייה", "בריאות וטבע", "לייפסטייל","הלבשה תחתונה",
+"מתנות ובית", "מוצרי חשמל", "מחשבים וסלולר", "אופטיקה ומשקפיים",
+"תיקים ואקססוריז", "ספורט", "שונות"};
 
-
+        public static string[] HebrewCategoriesCenter = {"אופנת נשים", "אופנת גברים", "שערים", "שירותים",
+"ילדים", "הנעלה", "כספומט", "חניון",
+"אוכל ושתייה", "בריאות", "לייפסטייל וקוסמטיקה","הלבשה תחתונה",
+"מתנות פנאי והום סטיילינג", "מוצרי חשמל", "מחשבים וסלולר", "אופטיקה ומשקפיים",
+"תיקים ארנקים ואקססוריז", "ספורט ומחנאות", "שונות"};
 
         public string Name2 { get; set; }
     }

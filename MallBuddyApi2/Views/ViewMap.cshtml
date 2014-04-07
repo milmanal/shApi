@@ -1,0 +1,38 @@
+﻿@{  var imagePath = "";
+  if (Request["photoChoice"] != null)
+  {
+      imagePath = @"images\" + Request["photoChoice"];
+  }
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Display Image on the Fly</title>
+</head>
+<body>
+    <h1>Displaying an Image On the Fly</h1>
+    <form method="post" action="">
+        <div>
+            I want to see:
+            <select name="photoChoice">
+                <option value="level0.jpg">Level 0</option>
+                <option value="level1.jpg">Level 1</option>
+                <option value="level2.jpg">Level 2</option>
+                <option value="level3.jpg">Level 3</option>
+                <option value="level4.jpg">Level 4</option>
+                <option value="level5.jpg">Level 5</option>
+                <option value="level6.jpg">Level 6</option>
+
+            </select>
+            &nbsp;
+            <input type="submit" value="Submit" />
+        </div>
+        <div style="padding:10px;">
+            @if (imagePath != "")
+            {
+                <img src="@imagePath" alt="Sample Image" width="300px" />
+            }
+        </div>
+    </form>
+</body>
+</html>

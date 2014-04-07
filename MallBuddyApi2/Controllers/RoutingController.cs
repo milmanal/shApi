@@ -1,4 +1,5 @@
-﻿using MallBuddyApi2.Models;
+﻿using log4net;
+using MallBuddyApi2.Models;
 using MallBuddyApi2.Models.existing;
 using MallBuddyApi2.Models.existing.Routing;
 using MallBuddyApi2.Models.existing.Routing.Graph21;
@@ -6,6 +7,7 @@ using MallBuddyApi2.Utils;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity.Spatial;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -18,11 +20,22 @@ namespace MallBuddyApi2.Controllers
     [EnableCors(origins: "*", headers: "*", methods: "*")]
     public class RoutingController : ApiController
     {
+        ILog logger = log4net.LogManager.GetLogger(typeof(RoutingController));
+        long start = 0;
+        Stopwatch sw;// = Stopwatch.StartNew();
         PoisRepository poisRep = new PoisRepository();
-        //private ApplicationDbContext db = new ApplicationDbContext();
+        static List<Point3D> pathPoints = null;
+        static List<Point3D> allPoints = null;
+        static List<LineStringDTO> allPaths = null;
+        static List<POI> poisWithLocations = null;
+
+        //private static ApplicationDbContext db = new ApplicationDbContext();
         // GET api/routing
         public RoutingPath GetRoute(string lon1, string lat1, int level1, string lon2, string lat2, int level2)
         {
+            start = DateTime.Now.Ticks;
+            sw = Stopwatch.StartNew();
+            logger.Debug("starting GetRoute");
             using (ApplicationDbContext myContext = new ApplicationDbContext())
             {
                 RoutingPath totalPath = GetRoutingPath(myContext, lon1, lat1, level1, lon2, lat2, level2);
@@ -42,11 +55,12 @@ namespace MallBuddyApi2.Controllers
                 //resp.Content = sc;
 
                 //return resp;
+                sw.Stop();
                 return totalPath;
             }
         }
 
-        private List<GraphDataItem> GetAdditionalEdgeOfSourceOrTargetToNearest(ApplicationDbContext db, List<IHasEntrances> storeContainers, Point3D point, IQueryable<Point3D> pathPoints, bool isTarget)
+        private List<GraphDataItem> GetAdditionalEdgeOfSourceOrTargetToNearest(ApplicationDbContext db, List<IHasEntrances> storeContainers, Point3D point, bool isTarget)
         {
             List<GraphDataItem> toReturn = new List<GraphDataItem>();
             if (storeContainers.Count == 1)
@@ -87,7 +101,7 @@ namespace MallBuddyApi2.Controllers
                 }
                 if (closestSource == null)
                     return null;
-                LineString3D<Point3D> pointToNearestPath = new LineString3D<Point3D>
+                LineStringDTO pointToNearestPath = new LineStringDTO
                 {
                     Level = point.Level,
                     Source = isTarget ? closestSource : point,
@@ -106,13 +120,18 @@ namespace MallBuddyApi2.Controllers
 
         private RoutingPath GetRoutingPath(ApplicationDbContext myContext, string lon1, string lat1, int level1, string lon2, string lat2, int level2)
         {
+            logger.Debug("starting GetRoutingPath, time spent: " + sw.ElapsedMilliseconds);
             List<GraphDataItem> dtEdges = new List<GraphDataItem>();
             RoutingPath totalPath = null;
 
             Point3D sourceToFind = new Point3D { Latitude = Decimal.Parse(lat1), Type = Point3D.PointType.PATH_POINT, Level = level1, Longitude = Decimal.Parse(lon1) };
             Point3D targetToFind = new Point3D { Latitude = Decimal.Parse(lat2), Type = Point3D.PointType.PATH_POINT, Level = level2, Longitude = Decimal.Parse(lon2) };
-            Point3D source = myContext.Points.ToList().Where(x => x.Level == level1 && x.Latitude == sourceToFind.Latitude && x.Longitude == sourceToFind.Longitude).FirstOrDefault();
-            Point3D target = myContext.Points.ToList().Where(x => x.Level == level2 && x.Latitude == targetToFind.Latitude && x.Longitude == targetToFind.Longitude).FirstOrDefault();
+            if (allPoints == null)
+                allPoints = myContext.Points.ToList();
+            Point3D source = allPoints.Where(x => x.Level == level1 && x.Latitude == sourceToFind.Latitude && x.Longitude == sourceToFind.Longitude).FirstOrDefault();
+            Point3D target = allPoints.Where(x => x.Level == level2 && x.Latitude == targetToFind.Latitude && x.Longitude == targetToFind.Longitude).FirstOrDefault();
+            logger.Debug("checked if source and destination are known points, time spent: " + sw.ElapsedMilliseconds);
+
             if (source == null)
             {
                 source = sourceToFind;
@@ -123,10 +142,15 @@ namespace MallBuddyApi2.Controllers
                 target = targetToFind;
                 target.setWktAndGeometry();
             }
-            var pathPoints = myContext.Points.Where(x => x.Type == Point3D.PointType.PATH_POINT | x.Type == Point3D.PointType.LEVEL_CONNECTION);
+            if (pathPoints == null)
+                pathPoints = myContext.Points.Where(x => x.Type == Point3D.PointType.PATH_POINT | x.Type == Point3D.PointType.LEVEL_CONNECTION).ToList();
+            logger.Debug("queried for paths points, time spent: " + sw.ElapsedMilliseconds);
+
             //double minToTarget = double.MaxValue;
             //Point3D closestTarget = null;
-            foreach (LineStringDTO item in myContext.LineStrings.Include("Source").Include("Target").ToList())
+            if (allPaths == null)
+                allPaths = myContext.LineStrings.Include("Source").Include("Target").ToList();
+            foreach (LineStringDTO item in allPaths)
             {
                 //if (item.connectorType != ConnectorType.NONE)
                 //  System.Diagnostics.Debugger.Break();
@@ -142,6 +166,8 @@ namespace MallBuddyApi2.Controllers
                 });
                 //edges.Add(item.toGeneric());
             }
+            logger.Debug("populated edges froml linestrings, time spent: " + sw.ElapsedMilliseconds);
+
             List<IHasEntrances> sourceContainers = new List<IHasEntrances>();
             List<IHasEntrances> targetContainers = new List<IHasEntrances>();
 
@@ -159,18 +185,22 @@ namespace MallBuddyApi2.Controllers
                 if (item is IHasEntrances)
                     targetContainers.Add((IHasEntrances)item);
             }
+            logger.Debug("checked if source/target are indside stores, time spent: " + sw.ElapsedMilliseconds);
+
             //point is inside store - need to add the edge to the entrance first
-            List<GraphDataItem> edgesFromSourceToGraph = GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, sourceContainers, source, pathPoints, false);
+            List<GraphDataItem> edgesFromSourceToGraph = GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, sourceContainers, source, false);
             if (edgesFromSourceToGraph == null)
                 return getRoutingPathFromDataGraphItems(myContext, source, target, dtEdges, true);
             else
                 dtEdges.AddRange(edgesFromSourceToGraph);
 
-            List<GraphDataItem> edgesFromGraphToTarget = GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, targetContainers, target, pathPoints, true);
+            List<GraphDataItem> edgesFromGraphToTarget = GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, targetContainers, target, true);
             if (edgesFromGraphToTarget == null)
                 return getRoutingPathFromDataGraphItems(myContext, source, target, dtEdges, true);
             else
                 dtEdges.AddRange(edgesFromGraphToTarget);
+            logger.Debug("connected source/target to nearest points of path, time spent: " + sw.ElapsedMilliseconds);
+
             //dtEdges.AddRange(GetAdditionalEdgeOfSourceOrTargetToNearest(myContext, targetContainers, target, pathPoints, true));
 
             //LineString3D<Point3D> targetToNearestPath = new LineString3D<Point3D>
@@ -190,12 +220,17 @@ namespace MallBuddyApi2.Controllers
             //edges.Add(targetToNearestPath);
             Graph2 graph2 = new Graph2(dtEdges);
             GraphSearchResult result = graph2.GetShortestPath((int)source.Id, (int)target.Id);
+            logger.Debug("calculated shortest path, time spent: " + sw.ElapsedMilliseconds);
+
             if (result == null || result.Count() == 0)
             {
                 //totalPath = getRoutingPathFromDataGraphItems(myContext, source, target, dtEdges, true);
             }
             else
+            {
                 totalPath = getRoutingPathFromDataGraphItems(myContext, source, target, result, false);
+                logger.Debug("transformed shortest path to our structure, time spent: " + sw.ElapsedMilliseconds);
+            }
 
             return totalPath;
         }
@@ -206,14 +241,14 @@ namespace MallBuddyApi2.Controllers
             foreach (var step in result)
             {
                 Point3D from = null;
-                LineStringDTO ls = db.LineStrings.ToList().Where(x=>x.Id == step.EdgeID).FirstOrDefault();
+                LineStringDTO ls = allPaths.Where(x=>x.Id == step.EdgeID).FirstOrDefault();
 
                 RoutingStep next = new RoutingStep();
                 if (ls != null)
                 {
                    // if (ls.connectorType != ConnectorType.PATH)
                      //   System.Diagnostics.Debugger.Break();
-                    next = ls.toGeneric().toRoutingStep();
+                    next = ls.toRoutingStep();
                 }
                 if (step.SourceVertexID == source.Id | step.SourceVertexID == target.Id)
                 {
@@ -312,6 +347,9 @@ namespace MallBuddyApi2.Controllers
         [Route("api/routing/geojson")]
         public HttpResponseMessage GetRouteGeoJson(string lon1, string lat1, int level1, string lon2, string lat2, int level2)
         {
+            start = DateTime.Now.Ticks;
+            sw = Stopwatch.StartNew();
+            logger.Debug("starting GetRouteGeoJson");
             using (ApplicationDbContext context = new ApplicationDbContext())
             {
                 RoutingPath totalPath = GetRoutingPath(context,lon1, lat1, level1, lon2, lat2, level2);
@@ -323,7 +361,7 @@ namespace MallBuddyApi2.Controllers
 
                 HttpResponseMessage resp = new HttpResponseMessage();
                 resp.Content = sc;
-
+                sw.Stop();
                 return resp;
             }
         }
@@ -331,22 +369,33 @@ namespace MallBuddyApi2.Controllers
         [Route("api/routing/byfloor")]
         public RoutingPathByFloor GetRouteByFloor(string lon1, string lat1, int level1, string lon2, string lat2, int level2)
         {
+            start = DateTime.Now.Ticks;
+            sw = Stopwatch.StartNew();
+            logger.Debug("starting GetRouteByFloor");
             using (ApplicationDbContext context = new ApplicationDbContext())
             {
+
                 RoutingPath totalPath = GetRoutingPath(context, lon1, lat1, level1, lon2, lat2, level2);
+                logger.Debug("after get route, time spent: " + sw.ElapsedMilliseconds);
                 Dictionary<int, List<POI>> ada = new Dictionary<int, List<POI>>();
                 int startlevel = Math.Min(level1, level2);
                 int endlevel = Math.Max(level1, level2);
-                var results = context.POIs.Include("Location").Where(x => x.Type == POI.POIType.HOSTED_LEVEL & x.Location.Level >= startlevel & x.Location.Level <= endlevel);
+                if (poisWithLocations == null)
+                    poisWithLocations = context.POIs.Include("Location").ToList();
+                var results = poisWithLocations.Where(x => x.Type == POI.POIType.HOSTED_LEVEL & x.Location.Level >= startlevel & x.Location.Level <= endlevel);
+                logger.Debug("queried for hosted levels, time spent: " + sw.ElapsedMilliseconds);
                 foreach (var item in results)
                 {
                     if (!ada.ContainsKey(item.Location.Level))
                         ada[item.Location.Level] = new List<POI>();
                     ada[item.Location.Level].Add(item);
                 }
+                logger.Debug("populated hosted levels objects, time spent: " + sw.ElapsedMilliseconds);
 
                 //ada = context.POIs.Include("Location").Where(x=>x.Type == POI.POIType.HOSTED_LEVEL & x.Location.Level>=startlevel& x.Location.Level<=endlevel).GroupBy(x => x.Location.Level).ToDictionary(x=>x.Key, x=>x.ToList());
                 RoutingPathByFloor routingPathByFloor = totalPath.ToRoutingPathByFloor(ada);
+                logger.Debug("after ToRoutingPathByFloor, returning result. time spent: " + sw.ElapsedMilliseconds);
+                sw.Stop();
                 return routingPathByFloor;
             }
         }

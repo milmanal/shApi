@@ -31,7 +31,7 @@ namespace MallBuddyApi2.Models
         [EnumDataType(typeof(POIType))]
         public Nullable<POIType> Type { get; set; }
         public bool Enabled { get; set; }
-        public enum POIType { STORE, PASSAGE, ELEVATOR, ATM, WC, STAIRS, ESCALATOR, ENTRANCE, PARKING, KIOSK, DEADZONE, HOSTED_LEVEL }
+        public enum POIType { STORE, PASSAGE, ELEVATOR, ATM, WC, STAIRS, ESCALATOR, ENTRANCE, PARKING, KIOSK, DEADZONE, HOSTED_LEVEL, NONE }
         public DateTime Modified { get; set; }
     }
 }

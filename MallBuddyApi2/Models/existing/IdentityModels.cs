@@ -33,13 +33,13 @@ namespace MallBuddyApi2.Models
         //}
 
         public ApplicationDbContext()
-            : base("Indoor2")
+            : base("Indoor")
         {
             Configuration.ProxyCreationEnabled = false;
         }
 
         public ApplicationDbContext(string dbName)
-            : base(GetConnectionString(dbName))
+            : base(dbName)
         {
             Configuration.ProxyCreationEnabled = false;
         }
@@ -48,7 +48,7 @@ namespace MallBuddyApi2.Models
         {
             modelBuilder.Entity<Point3D>().Property(x => x.Longitude).HasPrecision(18, 15);
             modelBuilder.Entity<Point3D>().Property(x => x.Latitude).HasPrecision(17, 15);
-            modelBuilder.Ignore<LineString3D<Point3D>>();
+            //modelBuilder.Ignore<LineString3D<Point3D>>();
         }
 
         public static string GetConnectionString(string dbName)
