@@ -9,6 +9,7 @@ using System.Configuration;
 using System.Data.Entity.Validation;
 using System.Text;
 using MallBuddyApi2.Models.existing;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MallBuddyApi2.Models
 {
@@ -22,9 +23,10 @@ namespace MallBuddyApi2.Models
         public DbSet<POI> POIs { get; set; }
         public DbSet<Polygone> Polygones { get; set; }
         public DbSet<Area> Areas { get; set; }
-        public DbSet<OpeningHoursSpan> Schedules { get; set; }
+        public DbSet<OperationHours> Schedules { get; set; }
+        public DbSet<Category> Categories { get; set; }        
         public DbSet<Point3D> Points { get; set; }
-        public DbSet<ContactDetails> ContactDetails { get; set; }
+        //public DbSet<ContactDetails> ContactDetails { get; set; }
         public DbSet<Image> Images { get; set; }
         public DbSet<LineStringDTO> LineStrings { get; set; }
         //static ApplicationDbContext()
@@ -48,6 +50,11 @@ namespace MallBuddyApi2.Models
         {
             modelBuilder.Entity<Point3D>().Property(x => x.Longitude).HasPrecision(18, 15);
             modelBuilder.Entity<Point3D>().Property(x => x.Latitude).HasPrecision(17, 15);
+            modelBuilder.Entity<OperationHours>().Property(x => x.from).HasColumnType("Time");
+            modelBuilder.Entity<OperationHours>().Property(x => x.to).HasColumnType("Time");
+
+            modelBuilder.Entity<Polygone>().HasKey(e => e.PoiId);
+            modelBuilder.Entity<Polygone>().Property(e => e.PoiId).HasDatabaseGeneratedOption(DatabaseGeneratedOption.None);
             //modelBuilder.Ignore<LineString3D<Point3D>>();
         }
 

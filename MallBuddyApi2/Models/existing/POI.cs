@@ -20,7 +20,7 @@ namespace MallBuddyApi2.Models
         public String Description { get; set; }
         public virtual Polygone Location { get; set; }
         public virtual List<Point3D> Entrances { get; set; }
-
+        public int Level { get; set; }
         [NotMapped]
         [JsonIgnore]
         [IgnoreDataMemberAttribute]
@@ -32,6 +32,12 @@ namespace MallBuddyApi2.Models
         public Nullable<POIType> Type { get; set; }
         public bool Enabled { get; set; }
         public enum POIType { STORE, PASSAGE, ELEVATOR, ATM, WC, STAIRS, ESCALATOR, ENTRANCE, PARKING, KIOSK, DEADZONE, HOSTED_LEVEL, NONE }
+        public static string[] HebrewTypeMappings = {"חנות","מעבר","מעלית","כספומט","שירותים","מדרגות","מדרגות נעות","שער כניסה","מעבר לחניון","דוכן","אזור מת","מפלס אורח","לא להצגה"};
         public DateTime Modified { get; set; }
+
+        public virtual void LoadForDetails(ApplicationDbContext db)
+        {
+            db.Entry(this).Collection("Entrances").Load();
+        }
     }
 }

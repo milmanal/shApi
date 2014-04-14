@@ -30,7 +30,7 @@ namespace MallBuddyApi2
             //config.MapHttpAttributeRoutes();
             var migratorConfig = new Migrations.Configuration();
             var dbMigrator = new DbMigrator(migratorConfig);
-            dbMigrator.Update();
+            //dbMigrator.Update();
         }
     }
 }

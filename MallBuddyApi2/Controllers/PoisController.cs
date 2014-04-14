@@ -30,6 +30,9 @@ namespace MallBuddyApi2.Controllers
             db = new ApplicationDbContext();
             storeRepository = new StoreRepository(db);
             poisRepository = new PoisRepository(db);
+            //db.Categories.LoadAsync();
+            //db.Polygones.LoadAsync();
+            //db.POIs.LoadAsync();
         }
         // GET api/Poi
         [Route("api/pois")]
@@ -44,10 +47,26 @@ namespace MallBuddyApi2.Controllers
         public IEnumerable<SimplePOI> GetPOIsCompact()
         {
             List<SimplePOI> poisToReturn = new List<SimplePOI>();
-            foreach (var poi in db.POIs.ToList())
+            //using (ApplicationDbContext context = new ApplicationDbContext())
+                foreach (var poi in db.POIs.ToList())
             {
+                if (poi is Store)
+                    db.Entry(poi).Collection("Categories").Load();
                 SimplePOI simplePOI = new SimplePOI(poi);
                 poisToReturn.Add(simplePOI);
+            }
+            return poisToReturn;
+        }
+
+        // GET api/Poi
+        [Route("api/pois/poisToDisplay")]
+        public IEnumerable<DrawablePOI> GetPoisByLevelWithCenter(int level)
+        {
+            List<DrawablePOI> poisToReturn = new List<DrawablePOI>();
+            foreach (var poi in db.POIs.Include(x=>x.Location).Where(x=>x.Level == level).ToList())
+            {
+                DrawablePOI drawablePOI = new DrawablePOI(poi);
+                poisToReturn.Add(drawablePOI);
             }
             return poisToReturn;
         }
@@ -91,14 +110,10 @@ namespace MallBuddyApi2.Controllers
         [Route("api/pois/{id:int}", Name = "GetPOIById")]
         public IHttpActionResult GetPOI(int id)
         {
-            if (db.POIs.Find(id) == null)
+            POI poi;
+            if ((poi = db.POIs.Find(id)) == null)
                 return NotFound();
-            POI poi = db.POIs.Include("Location").Include("Location.Points").
-    Include("ImageList").Include("Location.Areas").Single(x => x.DbID == id);
-            if (poi == null)
-            {
-                return NotFound();
-            }
+            poi.LoadForDetails(db);
 
             return Ok(poi);
         }
@@ -203,9 +218,9 @@ namespace MallBuddyApi2.Controllers
             poi.Modified = DateTime.Now;
             if (poi.Location != null)
             {
-                if (poi.Location.Id > 0)
+                if (poi.Location.PoiId > 0)
                 {
-                    Polygone foundP = db.Polygones.Find(poi.Location.Id);
+                    Polygone foundP = db.Polygones.Find(poi.Location.PoiId);
                     if (foundP == null)
                     {
                         foundP = db.Polygones.First(x => x.Wkt == poi.Location.Wkt && x.Level == poi.Location.Level);

@@ -7,13 +7,13 @@ namespace MallBuddyApi2.Migrations
     using System.Resources;
     
     [GeneratedCode("EntityFramework.Migrations", "6.0.2-21211")]
-    public sealed partial class schedule : IMigrationMetadata
+    public sealed partial class poislevels : IMigrationMetadata
     {
-        private readonly ResourceManager Resources = new ResourceManager(typeof(schedule));
+        private readonly ResourceManager Resources = new ResourceManager(typeof(poislevels));
         
         string IMigrationMetadata.Id
         {
-            get { return "201404071351581_schedule"; }
+            get { return "201404092346212_poislevels"; }
         }
         
         string IMigrationMetadata.Source

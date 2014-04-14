@@ -7,6 +7,6 @@ namespace MallBuddyApi2.Models.existing
 {
     public interface ISchedulable
     {
-        List<OpeningHoursSpan> Schedule { get; set; }
+        List<OperationHours> Schedule { get; set; }
     }
 }

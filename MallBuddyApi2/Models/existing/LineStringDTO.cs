@@ -92,6 +92,8 @@ namespace MallBuddyApi2.Models.existing
 
         public enum ConnectorType { NONE = 0, PATH, STAIRS, ELEVATOR, SINGLE_ESCALATOR, DOUBLE_ESCALATOR, TELEPORT }
 
+        public enum ConnectorTypeCost { NONE = 0, PATH, STAIRS = 10, ELEVATOR, SINGLE_ESCALATOR, DOUBLE_ESCALATOR, TELEPORT }
+
         internal RoutingStep toRoutingStep()
         {
             RoutingStep step = new RoutingStep

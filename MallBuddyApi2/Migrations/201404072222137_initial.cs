@@ -19,19 +19,6 @@ namespace MallBuddyApi2.Migrations
                 .Index(t => t.Polygone_Id);
             
             CreateTable(
-                "dbo.ContactDetails",
-                c => new
-                    {
-                        PoiName = c.String(nullable: false, maxLength: 128),
-                        Phone1 = c.String(),
-                        Phone2 = c.String(),
-                        Email = c.String(),
-                        Address = c.String(),
-                        Contactname = c.String(),
-                    })
-                .PrimaryKey(t => t.PoiName);
-            
-            CreateTable(
                 "dbo.Images",
                 c => new
                     {
@@ -102,19 +89,17 @@ namespace MallBuddyApi2.Migrations
                         Modified = c.DateTime(nullable: false),
                         gateID = c.String(),
                         Floor = c.Int(),
+                        Phone = c.String(),
                         WebsiteLink = c.String(),
                         LogoUrl = c.String(),
                         IsAccessible = c.Boolean(),
                         Name2 = c.String(),
                         Discriminator = c.String(nullable: false, maxLength: 128),
                         Location_Id = c.Int(),
-                        ContactDetails_PoiName = c.String(maxLength: 128),
                     })
                 .PrimaryKey(t => t.DbID)
                 .ForeignKey("dbo.Polygones", t => t.Location_Id)
-                .ForeignKey("dbo.ContactDetails", t => t.ContactDetails_PoiName)
-                .Index(t => t.Location_Id)
-                .Index(t => t.ContactDetails_PoiName);
+                .Index(t => t.Location_Id);
             
             CreateTable(
                 "dbo.Polygones",
@@ -129,13 +114,13 @@ namespace MallBuddyApi2.Migrations
                 .PrimaryKey(t => t.Id);
             
             CreateTable(
-                "dbo.OpeningHoursSpans",
+                "dbo.OperationHours",
                 c => new
                     {
                         Id = c.Int(nullable: false, identity: true),
                         day = c.Int(nullable: false),
-                        from = c.Int(nullable: false),
-                        to = c.Int(nullable: false),
+                        from = c.Time(nullable: false, precision: 7),
+                        to = c.Time(nullable: false, precision: 7),
                         Entrance_DbID = c.Long(),
                         Store_DbID = c.Long(),
                     })
@@ -161,10 +146,9 @@ namespace MallBuddyApi2.Migrations
         
         public override void Down()
         {
-            DropForeignKey("dbo.OpeningHoursSpans", "Store_DbID", "dbo.POIs");
-            DropForeignKey("dbo.POIs", "ContactDetails_PoiName", "dbo.ContactDetails");
+            DropForeignKey("dbo.OperationHours", "Store_DbID", "dbo.POIs");
             DropForeignKey("dbo.Categories", "Store_DbID", "dbo.POIs");
-            DropForeignKey("dbo.OpeningHoursSpans", "Entrance_DbID", "dbo.POIs");
+            DropForeignKey("dbo.OperationHours", "Entrance_DbID", "dbo.POIs");
             DropForeignKey("dbo.POIs", "Location_Id", "dbo.Polygones");
             DropForeignKey("dbo.Point3D", "Polygone_Id", "dbo.Polygones");
             DropForeignKey("dbo.Areas", "Polygone_Id", "dbo.Polygones");
@@ -172,10 +156,9 @@ namespace MallBuddyApi2.Migrations
             DropForeignKey("dbo.Point3D", "POI_DbID", "dbo.POIs");
             DropForeignKey("dbo.LineStrings", "Target_Id", "dbo.Point3D");
             DropForeignKey("dbo.LineStrings", "Source_Id", "dbo.Point3D");
-            DropIndex("dbo.OpeningHoursSpans", new[] { "Store_DbID" });
-            DropIndex("dbo.POIs", new[] { "ContactDetails_PoiName" });
+            DropIndex("dbo.OperationHours", new[] { "Store_DbID" });
             DropIndex("dbo.Categories", new[] { "Store_DbID" });
-            DropIndex("dbo.OpeningHoursSpans", new[] { "Entrance_DbID" });
+            DropIndex("dbo.OperationHours", new[] { "Entrance_DbID" });
             DropIndex("dbo.POIs", new[] { "Location_Id" });
             DropIndex("dbo.Point3D", new[] { "Polygone_Id" });
             DropIndex("dbo.Areas", new[] { "Polygone_Id" });
@@ -184,13 +167,12 @@ namespace MallBuddyApi2.Migrations
             DropIndex("dbo.LineStrings", new[] { "Target_Id" });
             DropIndex("dbo.LineStrings", new[] { "Source_Id" });
             DropTable("dbo.Categories");
-            DropTable("dbo.OpeningHoursSpans");
+            DropTable("dbo.OperationHours");
             DropTable("dbo.Polygones");
             DropTable("dbo.POIs");
             DropTable("dbo.Point3D");
             DropTable("dbo.LineStrings");
             DropTable("dbo.Images");
-            DropTable("dbo.ContactDetails");
             DropTable("dbo.Areas");
         }
     }

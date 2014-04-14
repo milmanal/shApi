@@ -7,6 +7,8 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using MallBuddyApi2.Models.existing;
 using System.Reflection;
+using System.Runtime.Serialization;
+using Newtonsoft.Json;
 
 namespace MallBuddyApi2.Models
 {
@@ -27,16 +29,22 @@ namespace MallBuddyApi2.Models
         //[KeyAttribute]
         //public int Id { get; set; }
         //public string Name { get; set; }
+        [JsonIgnore]
+        [IgnoreDataMemberAttribute]
         public List<Category> Categories { get; set; }
-        public List<String> Tags { get; set; }
 
+        [NotMapped]
+        public List<int> CategoriesIds { get; set; }
+
+        public List<String> Tags { get; set; }
+        //public string CategoriesString { get; set; }
         //public decimal Price { get; set; }
         //public List<int> floors { get; set; }
-        public int Floor { get; set; }
+        //public int Floor { get; set; }
         //public List<Category> categories { get; set; }
         //public virtual ContactDetails ContactDetails { get; set; }
         public string Phone { get; set; }
-        public virtual List<OpeningHoursSpan> Schedule { get; set; }
+        public List<OperationHours> Schedule { get; set; }
         //List<Product> products { get; set; }
         //List<Promotion> promotions { get; set; }
         //public List<Announcement> announcements { get; set; }
@@ -46,6 +54,7 @@ namespace MallBuddyApi2.Models
         public String WebsiteLink { get; set; }
         public string LogoUrl { get; set; }
         //public List<Image> ImageList { get; set; }
+        public string Name2 { get; set; }
 
         public bool IsAccessible { get; set; }
 
@@ -59,23 +68,17 @@ namespace MallBuddyApi2.Models
         //    set { }
         //}
 
-        public enum StoreCategory { WOMEN_FASHION, MEN_FASHION, GATE, TIOLETT, KIDS, SHOES, ATM, PARKING, FOOD_COFFEE, HEALTH, LIFESTYLE, UNDERWEAR
-            , GIFTS, ELECTRIC, CELLULAR, OPTICS, ACCESSORIES, SPORTS, MISC}
-        public static Dictionary<string, string> HebrewMappings;
-        public static string[] HebrewCategories = {"אופנת נשים", "אופנת גברים", "שערים", "שירותים",
-"ילדים", "הנעלה", "כספומט", "חניון",
-"אוכל ושתייה", "בריאות וטבע", "לייפסטייל","הלבשה תחתונה",
-"מתנות ובית", "מוצרי חשמל", "מחשבים וסלולר", "אופטיקה ומשקפיים",
-"תיקים ואקססוריז", "ספורט", "שונות"};
 
-        public static string[] HebrewCategoriesCenter = {"אופנת נשים", "אופנת גברים", "שערים", "שירותים",
-"ילדים", "הנעלה", "כספומט", "חניון",
-"אוכל ושתייה", "בריאות", "לייפסטייל וקוסמטיקה","הלבשה תחתונה",
-"מתנות פנאי והום סטיילינג", "מוצרי חשמל", "מחשבים וסלולר", "אופטיקה ומשקפיים",
-"תיקים ארנקים ואקססוריז", "ספורט ומחנאות", "שונות"};
 
-        public string Name2 { get; set; }
+
+        public override void LoadForDetails(ApplicationDbContext db)
+        {
+            base.LoadForDetails(db);
+            db.Entry(this).Collection("Categories").Load();
+            CategoriesIds = (List<int>)Categories.Select(x => (int)x.CategoryType).ToList();
+            db.Entry(this).Collection("Schedule").Load();
+
+        }
     }
-
 
 }

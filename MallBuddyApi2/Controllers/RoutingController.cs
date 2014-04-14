@@ -14,6 +14,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using System.Data.Entity;
 
 namespace MallBuddyApi2.Controllers
 {
@@ -374,25 +375,47 @@ namespace MallBuddyApi2.Controllers
             logger.Debug("starting GetRouteByFloor");
             using (ApplicationDbContext context = new ApplicationDbContext())
             {
-
                 RoutingPath totalPath = GetRoutingPath(context, lon1, lat1, level1, lon2, lat2, level2);
                 logger.Debug("after get route, time spent: " + sw.ElapsedMilliseconds);
                 Dictionary<int, List<POI>> ada = new Dictionary<int, List<POI>>();
-                int startlevel = Math.Min(level1, level2);
-                int endlevel = Math.Max(level1, level2);
+                int startlevel = Math.Min(level2, totalPath.Routingsteps.Min(x=>x.Source.Level));
+                int endlevel = Math.Max(level2, totalPath.Routingsteps.Max(x=>x.Source.Level));
                 if (poisWithLocations == null)
-                    poisWithLocations = context.POIs.Include("Location").ToList();
-                var results = poisWithLocations.Where(x => x.Type == POI.POIType.HOSTED_LEVEL & x.Location.Level >= startlevel & x.Location.Level <= endlevel);
-                logger.Debug("queried for hosted levels, time spent: " + sw.ElapsedMilliseconds);
-                foreach (var item in results)
                 {
-                    if (!ada.ContainsKey(item.Location.Level))
-                        ada[item.Location.Level] = new List<POI>();
-                    ada[item.Location.Level].Add(item);
+                    //    var hostedLevels = context.Database.SqlQuery<POI>(
+                    //    "select t1.* from POIs t1, Polygones t2 where t1.Type=11 and t2.Level>=" + startlevel + " and t2.Level<=" + endlevel + " and t1.Location_Id=t2.Id ");//.POIs.Where(x => x.Type == POI.POIType.HOSTED_LEVEL);
+                    //    foreach (var item in hostedLevels)
+                    //    {
+                    //        if (!ada.ContainsKey(item.Location.Level))
+                    //            ada[item.Location.Level] = new List<POI>();
+                    //        ada[item.Location.Level].Add(item);
+                    //    }
+                    //    //poisWithLocations = context.POIs.Include("Location").ToList();
+                    //}
+                    //var results = poisWithLocations.Where(x => x.Type == POI.POIType.HOSTED_LEVEL & x.Location.Level >= startlevel & x.Location.Level <= endlevel);
+                    logger.Debug("queried for hosted levels, time spent: " + sw.ElapsedMilliseconds);
+                    //var polys = context.Polygones.SqlQuery(
+                    //"select t2.* from POIs t1, Polygones t2 where t1.Type=11 and t2.Level>=" + startlevel + " and t2.Level<=" + endlevel + " and t1.Location_Id=t2.Id ");//.POIs.Where(x => x.Type == POI.POIType.HOSTED_LEVEL);
+                    //var hostedLevelss = context.POIs.Include("Location").Where(x => x.Type == POI.POIType.HOSTED_LEVEL);// & x.Level >= startlevel & x.Level <= endlevel);
+
+                    ////context.Polygones.Load();
+                    //foreach (var item in hostedLevelss)
+                    //{
+                    //    //context.Entry(item).Reference(x => x.Location).Load();
+                    //    //item.Location = context.Polygones.SqlQuery(
+                    //    //"select t2.* from Polygones t2 where t2.PoiId=" + item.DbID).First();//.POIs.Where(x => x.Type == POI.POIType.HOSTED_LEVEL);                    
+                    //    if (!ada.ContainsKey(item.Level))
+                    //        ada[item.Level] = new List<POI>();
+                    //    ada[item.Level].Add(item);
+                    //}
+                    poisWithLocations = context.POIs.Include("Location").Where(x => x.Type == POI.POIType.HOSTED_LEVEL).ToList();
                 }
                 logger.Debug("populated hosted levels objects, time spent: " + sw.ElapsedMilliseconds);
+                //ApplicationDbContext context2 = new ApplicationDbContext("fggf");
+                //context.Polygones.Load();
 
-                //ada = context.POIs.Include("Location").Where(x=>x.Type == POI.POIType.HOSTED_LEVEL & x.Location.Level>=startlevel& x.Location.Level<=endlevel).GroupBy(x => x.Location.Level).ToDictionary(x=>x.Key, x=>x.ToList());
+                ada = poisWithLocations.GroupBy(x => x.Location.Level).ToDictionary(x=>x.Key, x=>x.ToList());
+                //context.Polygones.Load();
                 RoutingPathByFloor routingPathByFloor = totalPath.ToRoutingPathByFloor(ada);
                 logger.Debug("after ToRoutingPathByFloor, returning result. time spent: " + sw.ElapsedMilliseconds);
                 sw.Stop();

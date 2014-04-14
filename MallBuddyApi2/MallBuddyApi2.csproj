@@ -202,20 +202,25 @@
     <Compile Include="Areas\HelpPage\SampleGeneration\SampleDirection.cs" />
     <Compile Include="Areas\HelpPage\SampleGeneration\TextSample.cs" />
     <Compile Include="Areas\HelpPage\XmlDocumentationProvider.cs" />
+    <Compile Include="Migrations\201404131459494_poly-poi.cs" />
+    <Compile Include="Migrations\201404131459494_poly-poi.Designer.cs">
+      <DependentUpon>201404131459494_poly-poi.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201404132222563_categories.cs" />
+    <Compile Include="Migrations\201404132222563_categories.Designer.cs">
+      <DependentUpon>201404132222563_categories.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Models\existing\DrawablePOI.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\MapsController.cs" />
     <Compile Include="Controllers\RoutingController.cs" />
-    <Compile Include="Migrations\201403200136498_initial.cs" />
-    <Compile Include="Migrations\201403200136498_initial.Designer.cs">
-      <DependentUpon>201403200136498_initial.cs</DependentUpon>
+    <Compile Include="Migrations\201404072222137_initial.cs" />
+    <Compile Include="Migrations\201404072222137_initial.Designer.cs">
+      <DependentUpon>201404072222137_initial.cs</DependentUpon>
     </Compile>
-    <Compile Include="Migrations\201403290036412_slight.cs" />
-    <Compile Include="Migrations\201403290036412_slight.Designer.cs">
-      <DependentUpon>201403290036412_slight.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\201404071351581_schedule.cs" />
-    <Compile Include="Migrations\201404071351581_schedule.Designer.cs">
-      <DependentUpon>201404071351581_schedule.cs</DependentUpon>
+    <Compile Include="Migrations\201404092346212_poislevels.cs" />
+    <Compile Include="Migrations\201404092346212_poislevels.Designer.cs">
+      <DependentUpon>201404092346212_poislevels.cs</DependentUpon>
     </Compile>
     <Compile Include="Models\existing\PoiCsvMapping.cs" />
     <Compile Include="Models\existing\Routing\RoutingPathByFloor.cs" />
@@ -253,7 +258,7 @@
     <Compile Include="Models\existing\Image.cs" />
     <Compile Include="Models\existing\ISchedulable.cs" />
     <Compile Include="Models\existing\LocationDetails.cs" />
-    <Compile Include="Models\existing\OpeningHoursSpan.cs" />
+    <Compile Include="Models\existing\OperationHours.cs" />
     <Compile Include="Models\existing\POI.cs" />
     <Compile Include="Models\existing\Point3D.cs" />
     <Compile Include="Models\existing\Polygone.cs" />
@@ -375,11 +380,17 @@
     <Content Include="SqlServerSpatial110.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <EmbeddedResource Include="Migrations\201403290036412_slight.resx">
-      <DependentUpon>201403290036412_slight.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\201404072222137_initial.resx">
+      <DependentUpon>201404072222137_initial.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\201404071351581_schedule.resx">
-      <DependentUpon>201404071351581_schedule.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\201404092346212_poislevels.resx">
+      <DependentUpon>201404092346212_poislevels.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201404131459494_poly-poi.resx">
+      <DependentUpon>201404131459494_poly-poi.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201404132222563_categories.resx">
+      <DependentUpon>201404132222563_categories.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Views\Home\Maps\level0.jpg">
       <BrowseToURL>Home\Maps\level0.jpg</BrowseToURL>
@@ -430,11 +441,6 @@
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Migrations\201403200136498_initial.resx">
-      <DependentUpon>201403200136498_initial.cs</DependentUpon>
-    </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

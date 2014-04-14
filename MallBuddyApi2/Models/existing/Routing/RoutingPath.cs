@@ -48,11 +48,13 @@ namespace MallBuddyApi2.Models.existing
                 Distance = this.Distance, 
                 PointsOfFloors = new Dictionary<int, List<RoutingPoint>>() 
             };
+            //List<int> levelsByOrder = Routingsteps.Select(x => x.Source.Level).Concat(new List<int> { Destination.Level }).Distinct().ToList();
             double coveredDistance = 0;
-            int floorsDirectionDelta = Source.Level >= Destination.Level ? -1 : 1;
             // treat the first point separately
             if (!toReturn.PointsOfFloors.ContainsKey(Source.Level))
                 toReturn.PointsOfFloors[Source.Level] = new List<RoutingPoint>();
+            int floorsDirectionDelta = Routingsteps[0].Source.Level >= Routingsteps[0].Destination.Level ? -1 : 1;
+
             RoutingPoint firstpoint = Routingsteps[0].toRoutingPoint(coveredDistance, true);
             firstpoint.DistanceCovered = 0;
             toReturn.PointsOfFloors[Source.Level].Add(firstpoint);
@@ -84,22 +86,26 @@ namespace MallBuddyApi2.Models.existing
                   //  continue;
                 toReturn.PointsOfFloors[levelToAdd].Add(point);
                 coveredDistance = point.DistanceCovered;
+                floorsDirectionDelta = step.Source.Level >= step.Destination.Level ? -1 : 1;
                 if (hostedLevels.ContainsKey(levelToAdd + floorsDirectionDelta) && hostedLevels[levelToAdd + floorsDirectionDelta] != null)
                     foreach (POI poi in hostedLevels[levelToAdd + floorsDirectionDelta])
                     {
                         int levelIndex = int.Parse(poi.Name[5].ToString());
-                        if (levelIndex == levelToAdd && poi.Location.LocationG.Contains(step.Source.LocationG))
+                        //if (levelIndex == levelToAdd && MallBuddyApi2.Utils.GeoUtils.IsPointInPolygone(step.Destination,poi.Location))
+                        if (levelIndex == levelToAdd && poi.Location.LocationG.Contains(point.LocationG))
                         {
                             if (!toReturn.PointsOfFloors.ContainsKey(levelToAdd + floorsDirectionDelta))
                                 toReturn.PointsOfFloors[levelToAdd + floorsDirectionDelta] = new List<RoutingPoint>();
                             toReturn.PointsOfFloors[levelToAdd + floorsDirectionDelta].Add(point);
+                            poi.Location.LocationG.AsText();
                         }
                     }
+
                 if (hostedLevels.ContainsKey(levelToAdd - floorsDirectionDelta) && hostedLevels[levelToAdd - floorsDirectionDelta] != null)
                     foreach (POI poi in hostedLevels[levelToAdd - floorsDirectionDelta])
                     {
                         int levelIndex = int.Parse(poi.Name[5].ToString());
-                        if (levelIndex == levelToAdd && poi.Location.LocationG.Contains(step.Source.LocationG))
+                        if (levelIndex == levelToAdd && poi.Location.LocationG.Contains(point.LocationG))
                         {
                             if (!toReturn.PointsOfFloors.ContainsKey(levelToAdd - floorsDirectionDelta))
                                 toReturn.PointsOfFloors[levelToAdd - floorsDirectionDelta] = new List<RoutingPoint>();

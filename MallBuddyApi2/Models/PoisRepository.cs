@@ -64,6 +64,8 @@ namespace MallBuddyApi2.Controllers
                     //context.Entry(s).Reference("Location").Load();
                     if (s.Location.LocationG.Contains(point))
                         containers.Add(s);
+                    //if (s.DbID == 528)
+                     //   containers = containers;
                 }
             }
             return containers;

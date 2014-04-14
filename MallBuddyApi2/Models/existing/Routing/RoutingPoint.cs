@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Data.Entity.Spatial;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Web;
 
 namespace MallBuddyApi2.Models.existing.Routing
@@ -17,6 +19,9 @@ namespace MallBuddyApi2.Models.existing.Routing
         [JsonPropertyAttribute(NullValueHandling = NullValueHandling.Ignore)]
         public String Name { get; set; }
         public double DistanceCovered { get; set; }
+        [JsonIgnore]
+        [IgnoreDataMemberAttribute]
+        public DbGeometry LocationG { get; set; }
         public String ToGeojson()
         {
             // StringBuilder sb = new StringBuilder("{\"type\":\"Feature\",\"geometry\":{\"type\":\"LineString\",\"coordinates\":[");

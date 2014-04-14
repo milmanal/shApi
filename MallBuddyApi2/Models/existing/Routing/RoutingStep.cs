@@ -40,6 +40,7 @@ namespace MallBuddyApi2.Models.existing
                 Level = isSource ? this.Source.Level : this.Destination.Level,
                 Latitude = isSource ? this.Source.Latitude : this.Destination.Latitude,
                 Longitude = isSource ? this.Source.Longitude : this.Destination.Longitude,
+                LocationG = isSource ? this.Source.LocationG : this.Destination.LocationG,
                 Instructions = this.Instructions,
                 DistanceCovered = coveredDistance + this.Distance
             };

@@ -24,12 +24,16 @@ namespace MallBuddyApi2.Migrations
     internal sealed class Configuration : DbMigrationsConfiguration<MallBuddyApi2.Models.ApplicationDbContext>
     {
         private const string JSON_PATH = @"F:\Users\mlmn\Documents\Indoor\indoorIO\012152834748849273080-0240009142.json";
-        private const string DC_STATS_PATH = @"F:\Users\mlmn\Documents\Indoor\Maps\Dizengoff Center\CMS\dc-poisEG0604.csv";        
+        private const string DC_STATS_PATH = @"F:\Users\mlmn\Documents\Indoor\Maps\Dizengoff Center\CMS\dc-poisEG0604.csv";
+        private const string DC_STATS_DIR = @"F:\Users\mlmn\Documents\Indoor\Maps\Dizengoff Center\CMS\";
+        
         private const string JSON_DIR_PATH = @"F:\Users\mlmn\Documents\Indoor\indoorIO";
+        ApplicationDbContext dcImportContext;// = new ApplicationDbContext("DCImport");
+
         public Configuration()
         {
-            AutomaticMigrationsEnabled = true;
-
+            //AutomaticMigrationsEnabled = true;
+            //dcImportContext = new ApplicationDbContext("DCImport");
         }
 
         protected override void Seed(MallBuddyApi2.Models.ApplicationDbContext context)
@@ -50,8 +54,9 @@ namespace MallBuddyApi2.Migrations
             //   System.Diagnostics.Debugger.Launch();
 
             //System.Diagnostics.Debugger.Break();
-            //SeedFromJson(new ApplicationDbContext());
-            ReadDCData(new ApplicationDbContext("DCImport"));
+            SeedFromJson(new ApplicationDbContext("DefaultConnection"));
+            //SeedFromJson(new ApplicationDbContext("Indoor"));
+            //ReadDCData(new ApplicationDbContext("DCImport2"));
             //InsertGolfStore(context);
         }
 
@@ -117,14 +122,24 @@ namespace MallBuddyApi2.Migrations
         private void ReadDCData(ApplicationDbContext context)
         {
             Dictionary<string, string> categoriesMappings = new Dictionary<string, string>();
-            string[] enumNames = Enum.GetNames(typeof(Store.StoreCategory));
+            string[] enumNames = Enum.GetNames(typeof(Category.StoreCategory));
             Category[] allCategories = new Category[enumNames.Length];
-            for (int i=0; i<Store.HebrewCategoriesCenter.Length; i++)
+            for (int i = 0; i < Category.HebrewCategoriesCenter.Length; i++)
             {
-                allCategories[i] = new Category(Store.HebrewCategoriesCenter[i]);
-                categoriesMappings.Add(Store.HebrewCategoriesCenter[i], enumNames[i]);
+                allCategories[i] = new Category(Category.HebrewCategoriesCenter[i]);
+                categoriesMappings.Add(Category.HebrewCategoriesCenter[i], enumNames[i]);
             }
-            using (var fileReader = File.OpenText(DC_STATS_PATH))
+            Dictionary<string, POI.POIType> typesMappings = new Dictionary<string, POI.POIType>();
+            enumNames = Enum.GetNames(typeof(POI.POIType));
+            for (int i = 0; i < POI.HebrewTypeMappings.Length; i++)
+            {
+                typesMappings.Add(POI.HebrewTypeMappings[i], (POI.POIType)(Enum.Parse(typeof(POI.POIType), enumNames[i])));
+            }
+            var directory = new DirectoryInfo(DC_STATS_DIR);
+            var myFile = directory.GetFiles("*.csv")
+                         .OrderByDescending(f => f.LastWriteTime)
+                         .First();
+            using (var fileReader = File.OpenText(myFile.FullName))
             using (var csvReader = new CsvHelper.CsvReader(fileReader))
             {
                 //var map = csvReader.Configuration.AutoMap<POI>();
@@ -133,8 +148,13 @@ namespace MallBuddyApi2.Migrations
                 {
                     POI poi = null;
                     var type = POI.POIType.NONE;
-                    if (!csvReader.TryGetField("Type", out type))
-                        type = POI.POIType.NONE;
+                    string typeString;
+                    if (csvReader.TryGetField("Type", out typeString) && typesMappings.ContainsKey(typeString))
+                    {
+                        type = typesMappings[typeString];
+                    }
+                    if (type == POI.POIType.NONE)
+                        continue;
                     if (type == POI.POIType.STORE)
                     {
                         poi = new Store();
@@ -144,16 +164,34 @@ namespace MallBuddyApi2.Migrations
                         ((Store)poi).IsAccessible = csvReader.GetField("Accessibility").Trim().Contains("כן");
                         List<Category> categories = new List<Category>();
                         string[] categoriesStrings = csvReader.GetField("Categories").Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                        Category toAdd = null;
                         foreach (String cat in categoriesStrings)
                         {
-                            Category found = allCategories.SingleOrDefault(x=>x.Text == cat.Trim());
-                            if (found!=null)
-                                categories.Add(found);
+
+                            try
+                            {
+                                toAdd = new Category(categoriesMappings[cat.Trim()]);
+                                categories.Add(toAdd);
+                            }
+                            catch (Exception ex)
+                            {
+                                ex = ex;
+                            }
+                            //Category found = allCategories.SingleOrDefault(x=>x.Text == cat.Trim());
+                            //if (found!=null)
+                              //  categories.Add(found);
                         }
                         ((Store)poi).Categories = categories;
                         ((Store)poi).Phone = csvReader.GetField("Phone").Trim();
                         ((Store)poi).Schedule = GetTimeTables(csvReader);
 
+                    }
+                    else if (type == POI.POIType.ENTRANCE)
+                    {
+                        poi = new Entrance();
+                        ((Entrance)poi).Schedule = GetTimeTables(csvReader);
+                        poi.Name = csvReader.GetField("Name").Trim();
+                        ((Entrance)poi).gateID = Regex.Match(poi.Name, "\\d+").Value;
                     }
                     else
                         poi = new POI();
@@ -168,6 +206,7 @@ namespace MallBuddyApi2.Migrations
                     string[] areasStrings = csvReader.GetField("Areas").Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (string area in areasStrings)
                         poi.Location.Areas.Add(new Area(area.Trim()));
+                    poi.Location.POI = poi;
                     context.POIs.Add(poi);
                     try
                     {
@@ -182,29 +221,43 @@ namespace MallBuddyApi2.Migrations
         }
 
 
-        private List<OpeningHoursSpan> GetTimeTables(CsvReader csvReader)
+        private List<OperationHours> GetTimeTables(CsvReader csvReader)
         {
-            DateTime weekdayfrom;// = SqlDateTime.MinValue;
-            DateTime.TryParseExact(csvReader.GetField("WeekdayOpen"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdayfrom);
-            DateTime weekdayto;
-            DateTime.TryParseExact(csvReader.GetField("WeekdayClose"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdayto);
+            TimeSpan? weekdayfrom = null;// = SqlDateTime.MinValue;
+            DateTime weekdayfromdt;
+            //DateTime.TryParseExact(csvReader.GetField("WeekdayOpen"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdayfromdt);
+            if (DateTime.TryParseExact(csvReader.GetField("WeekdayOpen"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdayfromdt))
+                weekdayfrom = weekdayfromdt.TimeOfDay;
+            TimeSpan? weekdayto = null;
+            DateTime weekdaytodt;
+            //DateTime.TryParseExact(csvReader.GetField("WeekdayClose"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdaytodt);
+            if (DateTime.TryParseExact(csvReader.GetField("WeekdayClose"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdaytodt))
+                weekdayto = weekdaytodt.TimeOfDay;
 
-            OpeningHoursSpan sunday = new OpeningHoursSpan { day = DayOfWeek.Sunday, from = weekdayfrom, to = weekdayto };
-            OpeningHoursSpan monday = new OpeningHoursSpan { day = DayOfWeek.Monday, from = weekdayfrom, to = weekdayto };
-            OpeningHoursSpan tuesday = new OpeningHoursSpan { day = DayOfWeek.Tuesday, from = weekdayfrom, to = weekdayto };
-            OpeningHoursSpan wednesday = new OpeningHoursSpan { day = DayOfWeek.Wednesday, from = weekdayfrom, to = weekdayto };
-            OpeningHoursSpan thursday = new OpeningHoursSpan { day = DayOfWeek.Thursday, from = weekdayfrom, to = weekdayto };
-            DateTime fridayfrom;
-            DateTime.TryParseExact(csvReader.GetField("FridayOpen"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out fridayfrom);
-            DateTime fridayto;
-            DateTime.TryParseExact(csvReader.GetField("FridayClose"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out fridayto);
-            DateTime saturdayto;
-            DateTime.TryParseExact(csvReader.GetField("SaturdayClose"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out saturdayto);
+            OperationHours sunday = new OperationHours { day = DayOfWeek.Sunday, from = weekdayfrom, to = weekdayto };
+            OperationHours monday = new OperationHours { day = DayOfWeek.Monday, from = weekdayfrom, to = weekdayto };
+            OperationHours tuesday = new OperationHours { day = DayOfWeek.Tuesday, from = weekdayfrom, to = weekdayto };
+            OperationHours wednesday = new OperationHours { day = DayOfWeek.Wednesday, from = weekdayfrom, to = weekdayto };
+            OperationHours thursday = new OperationHours { day = DayOfWeek.Thursday, from = weekdayfrom, to = weekdayto };
+            TimeSpan? fridayfrom = null;
+            DateTime fridayfromdt;
+            //DateTime.TryParseExact(csvReader.GetField("FridayOpen"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out fridayfromdt);
+            if (DateTime.TryParseExact(csvReader.GetField("FridayOpen"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out fridayfromdt))
+                fridayfrom = fridayfromdt.TimeOfDay;
+            TimeSpan? fridayto = null;
+            DateTime fridaytodt;
+            //DateTime.TryParseExact(csvReader.GetField("FridayClose"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out fridaytodt);
+            if (DateTime.TryParseExact(csvReader.GetField("FridayClose"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out fridaytodt))
+                fridayto = fridaytodt.TimeOfDay;
+            TimeSpan? saturdayto = null;
+            DateTime saturdaytodt;
+            if (DateTime.TryParseExact(csvReader.GetField("SaturdayClose"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out saturdaytodt))
+                saturdayto = saturdaytodt.TimeOfDay;
 
 
-            OpeningHoursSpan friday = new OpeningHoursSpan { day = DayOfWeek.Friday, from = fridayfrom, to = fridayto };
-            OpeningHoursSpan saturday = new OpeningHoursSpan { day = DayOfWeek.Saturday, to = saturdayto };
-            return new List<OpeningHoursSpan> { sunday, monday, tuesday, wednesday, thursday, friday, saturday };
+            OperationHours friday = new OperationHours { day = DayOfWeek.Friday, from = fridayfrom, to = fridayto };
+            OperationHours saturday = new OperationHours { day = DayOfWeek.Saturday, to = saturdayto };
+            return new List<OperationHours> {  sunday, monday, tuesday, wednesday, thursday, friday, saturday } ;
 
         }
 
@@ -212,6 +265,7 @@ namespace MallBuddyApi2.Migrations
         {
             try
             {
+                dcImportContext = new ApplicationDbContext("DCImport2");
                 Dictionary<string, Point3D> labeledPoints = new Dictionary<string, Point3D>();
                 StringBuilder sb = new StringBuilder();
                 var directory = new DirectoryInfo(JSON_DIR_PATH);
@@ -234,7 +288,7 @@ namespace MallBuddyApi2.Migrations
                 List<MallBuddyApi2.Models.existing.LineStringDTO> lineStrings = new List<LineStringDTO>();
                 List<JObject> connetcors = new List<JObject>();
                 int noareas = 0;
-
+                
                 foreach (JObject j in jObject["features"])
                 {
                     if (j != null && j["properties"]["level"] != null)
@@ -293,8 +347,13 @@ namespace MallBuddyApi2.Migrations
                 connectPOIsToPaths(labeledPoints, lineStrings, pathPoints);
                 //foreach (JObject j in paths)
                 //    extractLineString(j, lineStrings);
+                dcImportContext.Areas.Load();
+                dcImportContext.Schedules.Load();
+                dcImportContext.Categories.Load();
+                
+                List<POI> dcPois = dcImportContext.POIs.Include(x => x.Location).ToList();
                 foreach (JObject j in polys)
-                    extractPolygon(j, labeledPoints, context, badPolygonsPoints, poisToSave);
+                    extractPolygon(j, labeledPoints, context, badPolygonsPoints, poisToSave, dcPois);
                 foreach (JObject j in connetcors)
                     extractConnector(j, context);
                 foreach(LineStringDTO ldto in lineStrings)
@@ -339,14 +398,14 @@ namespace MallBuddyApi2.Migrations
                             context.POIs.AddOrUpdate(new POI[] { poi });
 
 
-                        context.SaveChanges();
+
                     }
                     catch (Exception ex)
                     {
                         ex = ex;
                     }
                 }
-
+                context.SaveChanges();
                 //foreach (POI poi in poisToSave)
                 //{
                 //    if (poi.Type == POI.POIType.STORE)
@@ -499,8 +558,9 @@ namespace MallBuddyApi2.Migrations
                     toAdd.Distance = GeoUtils.GetHaversineDistance(source, target);
                     toAdd.Level = source.Level;
                     toAdd.setConnectorType();
+                    // 
                     if (toAdd.connectorType == MallBuddyApi2.Models.existing.LineStringDTO.ConnectorType.STAIRS)
-                        toAdd.Distance += 0.01;
+                        toAdd.Distance += (int) MallBuddyApi2.Models.existing.LineStringDTO.ConnectorTypeCost.STAIRS;
                     lineStrings.Add(toAdd);
                 }
                 pillarPoints.Remove(source.Name);
@@ -637,8 +697,8 @@ namespace MallBuddyApi2.Migrations
             //throw new NotImplementedException();
         }
 
-        private static void extractPolygon(JObject feature, Dictionary<string, Point3D> labeledPoints, ApplicationDbContext context
-            , List<Point3D> badPolygonsPoints, List<POI> poisToSave)
+        private void extractPolygon(JObject feature, Dictionary<string, Point3D> labeledPoints, ApplicationDbContext context
+            , List<Point3D> badPolygonsPoints, List<POI> poisToSave, List<POI> dcPois)
         {
             POI poi = new POI();
             poi.Type = null;
@@ -717,11 +777,45 @@ namespace MallBuddyApi2.Migrations
                 labeledPoint = labeledPointsFound[0];
             else
                 labeledPoint = labeledPoint;
+            POI fromDCInfo = null;
             if (labeledPoint != null)
             {
-                //if (labeledPoint.Name != null && labeledPoint.Name.Contains("נייק"))
-                //    Debugger.Break();
-                toReturn.Areas = labeledPoint.Areas;
+                if (labeledPoint.Areas.Count > 0)
+                {
+                    try
+                    {
+                        fromDCInfo = dcPois.Find(x =>x.Location!=null && x.Location.Areas!=null && x.Location.Areas.Contains(labeledPoint.Areas[0]));
+                    }
+                    catch(Exception ex)
+                    {
+                        ex = ex;
+                    }
+                    //if (labeledPoint.Name != null && labeledPoint.Name.Contains("נייק"))
+                    //    Debugger.Break();
+                    if (fromDCInfo != null)
+                    {
+                        //if (fromDCInfo is ISchedulable)
+                        //    dcImportContext.Entry(fromDCInfo).Collection(x => ((ISchedulable)x).Schedule).Load();
+                        toReturn.Areas = fromDCInfo.Location.Areas;
+                        fromDCInfo.Location = toReturn;
+                        toReturn.POI = fromDCInfo;
+                        if (fromDCInfo is IHasEntrances)
+                        {
+                            ((IHasEntrances)fromDCInfo).Entrances = new List<Point3D>();
+                            foreach (Point3D entrancePoint in labeledPointsFound)
+                            {
+                                ((IHasEntrances)fromDCInfo).Entrances.Add(entrancePoint);
+                                entrancePoint.Type = Point3D.PointType.ENTRANCE;
+                            }
+                        }
+                        //toReturn.Areas = fromDCInfo.Location.Areas;
+                        fromDCInfo.Level = level;
+                        fromDCInfo.Modified = DateTime.Now;
+                        poisToSave.Add(fromDCInfo);
+                        return;
+                    }
+
+                }
                 if (labeledPoint.Areas != null && labeledPoint.Areas.Count > 0 && !labeledPoint.Areas[0].AreaID.StartsWith("9"))
                     poi.Type = POI.POIType.STORE;
                 if (labeledPoint.Name.ToLower().Contains("atm"))
@@ -746,7 +840,6 @@ namespace MallBuddyApi2.Migrations
                                 Type = poi.Type,
                                 Anchor = labeledPoint,
                                 Enabled = true,
-                                Floor = level,
                                 IsAccessible = labeledPoint.IsAccessible,
                                 Name = labeledPoint.Name,
                                 Name2 = labeledPoint.Name2,
@@ -775,6 +868,7 @@ namespace MallBuddyApi2.Migrations
                             break;
                         }
                 }
+                poi.Level = level;
                 poi.Modified = DateTime.Now;
                 poisToSave.Add(poi);
             }
@@ -822,16 +916,21 @@ namespace MallBuddyApi2.Migrations
                     toReturn.Areas.Add(area);
                 }
                 int index = 2;
-                while (feature["properties"]["attrs"]["AREAID" + index] != null)
+                while (true)
                 {
-                    if (feature["properties"]["attrs"]["AREAID" + index].ToString()!="")
-                    toReturn.Areas.Add(new Area(feature["properties"]["attrs"]["AREAID" + index].ToString()));
-                    index++;
-                }
-                while (feature["properties"]["attrs"]["AreaID" + index] != null)
-                {
-                    if (feature["properties"]["attrs"]["AreaID" + index].ToString() != "")
-                    toReturn.Areas.Add(new Area(feature["properties"]["attrs"]["AreaID" + index].ToString()));
+                    bool found = false;
+                    if (feature["properties"]["attrs"]["AREAID" + index] != null && feature["properties"]["attrs"]["AREAID" + index].ToString() != "")
+                    {
+                        found = true;
+                        toReturn.Areas.Add(new Area(feature["properties"]["attrs"]["AREAID" + index].ToString()));
+                    }
+                    if (feature["properties"]["attrs"]["AreaID" + index] != null && feature["properties"]["attrs"]["AreaID" + index].ToString() != "")
+                    {
+                        found = true;
+                        toReturn.Areas.Add(new Area(feature["properties"]["attrs"]["AreaID" + index].ToString()));
+                    }
+                    if (!found)
+                        break;
                     index++;
                 }
             }

@@ -10,6 +10,41 @@
 
     <script>
 
+        function getAllNames(event) {
+            var level1 = document.getElementById("levelMap").getAttribute("src");
+            level1 = level1[level1.length - 5];
+
+            var serviceUrl = '/api/pois/poisToDisplay?level=' + level1; // Replace with your URI.
+
+            $.ajax({
+                type: "GET",
+                url: serviceUrl,
+                parameters: {level: level1 },
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+
+
+            }).success(function (data) {
+                $.each(data, function (index, element) {
+                    //window.alert(element.name);
+                    var myLayer = document.createElement('div');
+                    //myLayer.id = 'bookingLayer';
+                    myLayer.style.position = 'absolute';
+                    myLayer.style.left = Math.round((element.centerX / 3) + document.getElementById("pointer_div").offsetLeft)+"px";
+                    myLayer.style.top = Math.round((element.centerY / 3) + document.getElementById("pointer_div").offsetTop)+"px";
+                    myLayer.style.width = '20px';
+                    myLayer.style.height = '20px';
+                    myLayer.style.padding = '1px';
+                    //myLayer.style.background = '#00ff00';
+                    myLayer.innerHTML = element.logoUrl;
+                    document.getElementById("pointer_div").appendChild(myLayer);
+                });
+
+            }).error(function (jqXHR, textStatus, errorThrown) {
+                $('#value1').text(jqXHR.responseText || textStatus);
+            });
+        }
+
         function mapclicked(event) {
 
             //var method = $('#method').val();
@@ -32,6 +67,20 @@
                 $.each(data, function (index, element) {
                     //window.alert(element.name);
                     document.getElementById("result").innerHTML = element.name;//+element.entrances[0].areaID;
+                    if (element.logoUrl == null | element.logoUrl == '#N/A') {
+
+                        if (element.websiteLink != null) {
+                            var link = element.websiteLink;
+                            if (!/^http:/.test(link))
+                                link = 'http://'.concat(link);
+                            window.open(link);
+                        }
+                        else
+                            window.alert(element.name);
+                    }
+                    else
+                        //window.open('http://shimeba.blob.core.windows.net/logos/' + element.logoUrl);
+                        window.prompt("Copy to clipboard: Ctrl+C, Enter", element.logoUrl);
                 });
 
             }).error(function (jqXHR, textStatus, errorThrown) {
@@ -56,7 +105,7 @@
             </select>
             &nbsp;
             <input type="submit" value="Submit" />
-            
+            <input type="button" value="Show All" onclick="getAllNames(event)" />
             <div id="result">
                 Store Clicked: 
             </div>

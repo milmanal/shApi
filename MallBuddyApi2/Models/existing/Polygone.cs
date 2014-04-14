@@ -2,6 +2,8 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.Spatial;
 using System.Data.SqlTypes;
 using System.Linq;
@@ -13,7 +15,12 @@ namespace MallBuddyApi2.Models
 {
     public class Polygone
     {
-        public int Id { get; set; }
+        [Key, ForeignKey("POI")]
+        public long PoiId { get; set; }
+        [JsonIgnore]
+        [IgnoreDataMemberAttribute]
+        public virtual POI POI { get; set; }
+        
         [JsonIgnore]
         [IgnoreDataMemberAttribute]
         public String Wkt { get; set; }
@@ -64,7 +71,19 @@ namespace MallBuddyApi2.Models
 
         public override int GetHashCode()
         {
-            return LocationG != null ? LocationG.GetHashCode() : (String.IsNullOrEmpty(Wkt) ? Id : Wkt.GetHashCode());
+            return LocationG != null ? LocationG.GetHashCode() : (String.IsNullOrEmpty(Wkt) ? (int)PoiId : Wkt.GetHashCode());
+        }
+
+        public String ToGeojson()
+        {
+            // StringBuilder sb = new StringBuilder("{\"type\":\"Feature\",\"geometry\":{\"type\":\"LineString\",\"coordinates\":[");
+            //     sb.Append("["+Source.Longitude+","+Source.Latitude+"],["+Destination.Longitude+","+Destination.Latitude+"]]},\"properties\":{\"level\":"+Source.Level+"}}");
+            StringBuilder sb = new StringBuilder(@"{""type"":""Feature"",""geometry"":{""type"":""Polygon"",""coordinates"":[[" );
+            foreach (var point in points)
+                sb.Append("[" + point.Longitude + ", " + point.Latitude + "],");
+            sb.Remove(sb.Length - 1,1);
+            sb.Append(@"]]},""properties"":{""level"":" + Level + "}}");
+            return sb.ToString();
         }
     }
 }

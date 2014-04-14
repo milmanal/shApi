@@ -1,6 +1,7 @@
 ﻿using MallBuddyApi2.Models;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Web;
 
@@ -15,10 +16,10 @@ namespace MallBuddyApi2.Utils
         public static double pixelsPerMeter = 12.2685;
         public static double bitmapOrientation = -420.6029;
         protected static double a = 6378137;
-	    /** Equatorial earth radius */
-	    protected static double b = 6356752.314245;
-	    /** Polar earth radius */
-	    protected static double r = 0.5 * (a + b);
+        /** Equatorial earth radius */
+        protected static double b = 6356752.314245;
+        /** Polar earth radius */
+        protected static double r = 0.5 * (a + b);
 
         public static double GetHaversineDistance(Point3D source, Point3D target)
         {
@@ -33,7 +34,8 @@ namespace MallBuddyApi2.Utils
             double c = 2 * Math.Asin(Math.Min(1, Math.Sqrt(a)));
             double d = EARTH_RADIUS_KM * c;
  
-            return d;
+            // meters
+            return d*1000;
         }
 
         public static bool IsPointInPolygone(Point3D point, Polygone polygone)
@@ -65,11 +67,30 @@ namespace MallBuddyApi2.Utils
                     * deltaX + Math.Cos(bitmapOrientation * Math.PI / 180.0)
                     * deltaY;
 
-            decimal lat = (decimal) (bitmapLocationLatitude + 180.0 / Math.PI * deltaN / r);
+            decimal lat = (decimal)(bitmapLocationLatitude + 180.0 / Math.PI * deltaN / r);
             decimal lon = (decimal)(bitmapLocationLongitude - 180.0 / Math.PI * deltaW
                     / (r * Math.Cos(bitmapLocationLatitude * Math.PI / 180.0)));
-            Point3D currentPos = new Point3D{Latitude= lat,Longitude= lon, Level= floorNr};
+            Point3D currentPos = new Point3D { Latitude = lat, Longitude = lon, Level = floorNr };
             return currentPos;
+        }
+
+        public struct CGPoint { public double x { get; set; } public double y { get; set; }  }
+
+        public static CGPoint longLat2PixelPoint(double pointX, double pointyY)
+        {
+            // This function makes a local approximation and should not be used over
+            // long distances
+            // Transform to a coordinate system in upper left corner of image
+            //FloorInfo f = getFloorInfo(floorNr);
+            double deltaN = (pointyY - bitmapLocationLatitude) * Math.PI / 180 * r;
+            double deltaW = -(pointX - bitmapLocationLongitude) * Math.PI / 180 * r * Math.Cos(bitmapLocationLatitude * Math.PI / 180.0);
+            double deltaX = Math.Cos(bitmapOrientation * Math.PI / 180.0) * deltaN - Math.Sin(bitmapOrientation * Math.PI / 180.0) * deltaW;
+            double deltaY = Math.Sin(bitmapOrientation * Math.PI / 180.0) * deltaN + Math.Cos(bitmapOrientation * Math.PI / 180.0) * deltaW;
+
+            double x = -deltaY * pixelsPerMeter + bitmapOffsetX;
+            double y = -deltaX * pixelsPerMeter + bitmapOffsetY;
+            CGPoint point = new CGPoint { x = x, y = y };
+            return point;
         }
         /*
          * int pnpoly(int nvert, float *vertx, float *verty, float testx, float testy)

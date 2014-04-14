@@ -10,9 +10,9 @@ namespace MallBuddyApi2.Models.existing
     {
         [Key]
         public String gateID  { get; set; }
-        public List<OpeningHoursSpan> schedule;
+        public List<OperationHours> schedule;
 
-        public virtual List<OpeningHoursSpan> Schedule
+        public virtual List<OperationHours> Schedule
         {
             get
             {
@@ -22,6 +22,12 @@ namespace MallBuddyApi2.Models.existing
             {
                 schedule = value;
             }
+        }
+
+        public override void LoadForDetails(ApplicationDbContext db)
+        {
+            base.LoadForDetails(db);
+            db.Entry(this).Collection("Schedule").Load();
         }
     }
 }

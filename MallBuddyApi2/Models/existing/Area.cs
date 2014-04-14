@@ -8,7 +8,7 @@ using System.Xml.Serialization;
 
 namespace MallBuddyApi2.Models
 {
-    public class Area
+    public class Area : IEquatable<Area>
     {
         public Area() { }
         public Area(string area)
@@ -18,7 +18,17 @@ namespace MallBuddyApi2.Models
         [Key]
         //[JsonIgnore]
         //[XmlIgnore]
-       // public int ID { get; set; }
+        // public int ID { get; set; }
         public String AreaID { get; set; }
+
+        public bool Equals(Area other)
+        {
+            return AreaID == other.AreaID;
+        }
+
+        public override int GetHashCode()
+        {
+            return AreaID.GetHashCode();
+        }
     }
 }
