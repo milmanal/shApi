@@ -91,7 +91,7 @@ namespace MallBuddyApi2.Models.existing
         }
 
         public enum ConnectorType { NONE = 0, PATH, STAIRS, ELEVATOR, SINGLE_ESCALATOR, DOUBLE_ESCALATOR, TELEPORT }
-
+        public string[] ConnectorHebrewMappings = { "ללא", "מסלול", "מדרגות", "מעלית", "דרגנוע", "דרגנוע", "" };
         public enum ConnectorTypeCost { NONE = 0, PATH, STAIRS = 10, ELEVATOR, SINGLE_ESCALATOR, DOUBLE_ESCALATOR, TELEPORT }
 
         internal RoutingStep toRoutingStep()
@@ -109,19 +109,20 @@ namespace MallBuddyApi2.Models.existing
             // its floor change;
             if (connectorType == ConnectorType.ELEVATOR)
             {
-                step.Instructions = "Go to floor " + Target.Level / 2 + " in the elevator";
+                step.Instructions = "לחץ על קומה " + Target.Level / 2 + " במעלית";
             }
 
             if (connectorType == ConnectorType.STAIRS | connectorType == ConnectorType.ELEVATOR | connectorType == ConnectorType.DOUBLE_ESCALATOR | connectorType == ConnectorType.SINGLE_ESCALATOR)
             {
+                int levelDiff = (Source.Level - Target.Level);
                 if (Source.Level - Target.Level == 2)
-                    step.Instructions = "Take the " + connectorType.ToString() + " down 1 level";
+                    step.Instructions = "רד ב " + ConnectorHebrewMappings[(int)connectorType] + " קומה אחת למטה";
                 if (Source.Level > Target.Level)
-                    step.Instructions = "Take the " + connectorType.ToString() + " down " + (Source.Level - Target.Level) / 2 + " levels";
+                    step.Instructions = "רד ב " + ConnectorHebrewMappings[(int)connectorType] + " " + ((Math.Abs(levelDiff / 2) == 1) ? "קומה אחת" : (Math.Abs(levelDiff / 2) + " קומות"));
                 if (Target.Level - Source.Level == 2)
-                    step.Instructions = "Take the " + connectorType.ToString() + " up 1 level";
+                    step.Instructions = "עלה ב" + ConnectorHebrewMappings[(int)connectorType] + " קומה אחת למעלה";
                 if (Target.Level > Source.Level)
-                    step.Instructions = "Take the " + connectorType.ToString() + " up " + (Target.Level - Source.Level) / 2 + " levels";
+                    step.Instructions = "עלה ב" + ConnectorHebrewMappings[(int)connectorType] + " " + ((Math.Abs(levelDiff / 2) == 1) ? "קומה אחת" : (Math.Abs(levelDiff / 2) +" קומות"));
             }
 
             return step;

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.Entity.Spatial;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Web;
 
@@ -10,6 +11,14 @@ namespace MallBuddyApi2.Models.existing.Routing
 {
     public class RoutingPoint
     {
+        public RoutingPoint() { }
+        
+        public RoutingPoint(RoutingPoint point)
+        {
+            foreach (PropertyInfo prop in point.GetType().GetProperties())
+                GetType().GetProperty(prop.Name).SetValue(this, prop.GetValue(point, null), null);
+
+        }
         //public Point3D Point { get; set; }
         public decimal Longitude { get; set; }
         public decimal Latitude { get; set; }
@@ -18,6 +27,8 @@ namespace MallBuddyApi2.Models.existing.Routing
         public String Instructions { get; set; }
         [JsonPropertyAttribute(NullValueHandling = NullValueHandling.Ignore)]
         public String Name { get; set; }
+        [JsonPropertyAttribute(NullValueHandling = NullValueHandling.Ignore)]
+        public Boolean? SkipConnectToNext { get; set; }        
         public double DistanceCovered { get; set; }
         [JsonIgnore]
         [IgnoreDataMemberAttribute]

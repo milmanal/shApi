@@ -41,6 +41,7 @@ namespace MallBuddyApi2.Models.existing
 
         public RoutingPathByFloor ToRoutingPathByFloor (Dictionary<int, List<POI>> hostedLevels)
         {
+            List<RoutingPoint> pointsList = new List<RoutingPoint>();
             RoutingPathByFloor toReturn = new RoutingPathByFloor 
             { 
                 Source = this.Source, 
@@ -58,6 +59,7 @@ namespace MallBuddyApi2.Models.existing
             RoutingPoint firstpoint = Routingsteps[0].toRoutingPoint(coveredDistance, true);
             firstpoint.DistanceCovered = 0;
             toReturn.PointsOfFloors[Source.Level].Add(firstpoint);
+            pointsList.Add(firstpoint);
             coveredDistance = firstpoint.DistanceCovered;
             if (hostedLevels.ContainsKey(Source.Level + floorsDirectionDelta) && hostedLevels[Source.Level + floorsDirectionDelta] != null)
                 foreach (POI poi in hostedLevels[Source.Level + floorsDirectionDelta])
@@ -67,17 +69,30 @@ namespace MallBuddyApi2.Models.existing
                     {
                         if (!toReturn.PointsOfFloors.ContainsKey(Source.Level + floorsDirectionDelta))
                             toReturn.PointsOfFloors[Source.Level + floorsDirectionDelta] = new List<RoutingPoint>();
-                        toReturn.PointsOfFloors[Source.Level + floorsDirectionDelta].Add(firstpoint);
+                        toReturn.PointsOfFloors[Source.Level + floorsDirectionDelta].Add(new RoutingPoint(firstpoint));
                     }
                 }
             RoutingPoint point = null;
-            foreach (var step in this.Routingsteps)
+            List<int> previousLevels = new List<int>();
+            List<int> currentLevels = new List<int>();
+            for (int i=0; i<Routingsteps.Count; i++)
             {
+                RoutingStep step = Routingsteps[i];
                 int levelToAdd =  step.Source.Level;
                 if (!string.IsNullOrEmpty(step.Instructions))
                 {
                     levelToAdd = step.Destination.Level;
                     point.Instructions = step.Instructions;
+
+                    // set instruction in few steps before, in 20m distance
+                    
+                    for (int j=pointsList.Count-1; j>0; j--)
+                    {
+                        if ((coveredDistance) - pointsList[j].DistanceCovered < 20)
+                            pointsList[j].Instructions = step.Instructions;
+                        else
+                            break;
+                    }
                 }
                 if (!toReturn.PointsOfFloors.ContainsKey(levelToAdd))
                     toReturn.PointsOfFloors[levelToAdd] = new List<RoutingPoint>();
@@ -85,7 +100,11 @@ namespace MallBuddyApi2.Models.existing
                 //if (step == Routingsteps[0])
                   //  continue;
                 toReturn.PointsOfFloors[levelToAdd].Add(point);
+                pointsList.Add(point);
+                currentLevels.Add(levelToAdd);
                 coveredDistance = point.DistanceCovered;
+                if (this.Distance - coveredDistance < 20 && Math.Abs(levelToAdd - Destination.Level) <= 1)
+                    point.Instructions = "היכון להגעה ליעד";
                 floorsDirectionDelta = step.Source.Level >= step.Destination.Level ? -1 : 1;
                 if (hostedLevels.ContainsKey(levelToAdd + floorsDirectionDelta) && hostedLevels[levelToAdd + floorsDirectionDelta] != null)
                     foreach (POI poi in hostedLevels[levelToAdd + floorsDirectionDelta])
@@ -96,7 +115,8 @@ namespace MallBuddyApi2.Models.existing
                         {
                             if (!toReturn.PointsOfFloors.ContainsKey(levelToAdd + floorsDirectionDelta))
                                 toReturn.PointsOfFloors[levelToAdd + floorsDirectionDelta] = new List<RoutingPoint>();
-                            toReturn.PointsOfFloors[levelToAdd + floorsDirectionDelta].Add(point);
+                            toReturn.PointsOfFloors[levelToAdd + floorsDirectionDelta].Add(new RoutingPoint(point));
+                            currentLevels.Add(levelToAdd + floorsDirectionDelta);
                             poi.Location.LocationG.AsText();
                         }
                     }
@@ -109,9 +129,22 @@ namespace MallBuddyApi2.Models.existing
                         {
                             if (!toReturn.PointsOfFloors.ContainsKey(levelToAdd - floorsDirectionDelta))
                                 toReturn.PointsOfFloors[levelToAdd - floorsDirectionDelta] = new List<RoutingPoint>();
-                            toReturn.PointsOfFloors[levelToAdd - floorsDirectionDelta].Add(point);
+                            toReturn.PointsOfFloors[levelToAdd - floorsDirectionDelta].Add(new RoutingPoint(point));
+                            currentLevels.Add(levelToAdd - floorsDirectionDelta);
                         }
                     }
+                // check if a null needs to be inserted in the array of one of the levels - means we recognzied that a segment has ended within a floor
+                // A NULL may stand for the end of the segment which may have (or not) another segment within the floor after
+                foreach (var levelPreviouslyAdded in previousLevels)
+                {
+                    if (!currentLevels.Contains(levelPreviouslyAdded))
+                    {
+                        toReturn.PointsOfFloors[levelPreviouslyAdded][toReturn.PointsOfFloors[levelPreviouslyAdded].Count - 1].SkipConnectToNext = true;
+                        toReturn.PointsOfFloors[levelPreviouslyAdded].Add(null);
+                    }
+                }
+                previousLevels = currentLevels.ToList();
+                currentLevels.Clear();
             }
             // treat the last point separately
             //if (!toReturn.PointsOfFloors.ContainsKey(Destination.Level))

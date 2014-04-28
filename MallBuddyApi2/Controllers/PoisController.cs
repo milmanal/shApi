@@ -15,6 +15,7 @@ using System.Data.Entity.Core;
 using Newtonsoft.Json;
 using MallBuddyApi2.Models.existing;
 using MallBuddyApi2.Utils;
+using System.Collections;
 
 namespace MallBuddyApi2.Controllers
 {
@@ -48,7 +49,7 @@ namespace MallBuddyApi2.Controllers
         {
             List<SimplePOI> poisToReturn = new List<SimplePOI>();
             //using (ApplicationDbContext context = new ApplicationDbContext())
-                foreach (var poi in db.POIs.ToList())
+            foreach (var poi in db.POIs.Where(x=>x.Type!=POI.POIType.DEADZONE & x.Type!=POI.POIType.HOSTED_LEVEL).ToList())
             {
                 if (poi is Store)
                     db.Entry(poi).Collection("Categories").Load();
@@ -58,7 +59,48 @@ namespace MallBuddyApi2.Controllers
             return poisToReturn;
         }
 
-        // GET api/Poi
+        [Route("api/pois/category/distnace")]
+        public IEnumerable<SimplePOI> GetCategoryByDistance(int category, string lon, string lat, int level)
+        {
+            IEnumerable<POI> poisToSort = null;
+            switch (category)                
+            {
+                case (int)Category.StoreCategory.PARKING :
+                    {
+                        poisToSort = db.POIs.Where(x => x.Type == POI.POIType.PARKING);
+                        break;
+                    }
+                case (int)Category.StoreCategory.GATE:
+                    {
+                        poisToSort = db.POIs.Where(x => x.Type == POI.POIType.ENTRANCE);
+                        break;
+                    }
+                case (int)Category.StoreCategory.TIOLET:
+                    {
+                        poisToSort = db.POIs.Where(x => x.Type == POI.POIType.WC);
+                        break;
+                    }
+            }
+            if (poisToSort == null)
+            {
+                //Category categoryToFind = new Category(category);
+                poisToSort = db.Stores.Include(x => x.Categories).Where(x => x.Categories.Select(t=>(int)t.CategoryType).Contains(category)).ToList();
+            }
+            //IEnumerable<SimplePOI> sortedPois = new List<SimplePOI>();
+            SortedList<double,SimplePOI> sortedPoisCol = new SortedList<double,SimplePOI>();
+            
+            using (RoutingController routing = new RoutingController())
+            foreach (var item in poisToSort)
+            {
+                RoutingPath path = routing.GetRoutingPathToPOI(db, lon, lat, level, item);
+                if (path!=null)
+                    sortedPoisCol.Add(path.Distance, new SimplePOI(item));
+            }
+            return sortedPoisCol.Values;
+        }
+
+
+        // GET api/Poi=
         [Route("api/pois/poisToDisplay")]
         public IEnumerable<DrawablePOI> GetPoisByLevelWithCenter(int level)
         {

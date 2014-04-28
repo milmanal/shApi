@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 
 namespace MallBuddyApi2.Models
 {
-    public class Store : POI, ISchedulable, IHasEntrances
+    public class Store : POI, ISchedulable
     {
         //private POI poi;
 
@@ -51,7 +51,7 @@ namespace MallBuddyApi2.Models
         //public List<Polygone> exits { get; set; }
         //public List<Area> Area { get; set; }
         // url from which the data was scraped not the official website
-        public String WebsiteLink { get; set; }
+        public string WebsiteLink { get; set; }
         public string LogoUrl { get; set; }
         //public List<Image> ImageList { get; set; }
         public string Name2 { get; set; }

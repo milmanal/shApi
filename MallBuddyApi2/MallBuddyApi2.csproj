@@ -210,6 +210,14 @@
     <Compile Include="Migrations\201404132222563_categories.Designer.cs">
       <DependentUpon>201404132222563_categories.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201404171655173_entrances.cs" />
+    <Compile Include="Migrations\201404171655173_entrances.Designer.cs">
+      <DependentUpon>201404171655173_entrances.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201404171656538_entrances2.cs" />
+    <Compile Include="Migrations\201404171656538_entrances2.Designer.cs">
+      <DependentUpon>201404171656538_entrances2.cs</DependentUpon>
+    </Compile>
     <Compile Include="Models\existing\DrawablePOI.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\MapsController.cs" />
@@ -391,6 +399,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\201404132222563_categories.resx">
       <DependentUpon>201404132222563_categories.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201404171655173_entrances.resx">
+      <DependentUpon>201404171655173_entrances.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201404171656538_entrances2.resx">
+      <DependentUpon>201404171656538_entrances2.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Views\Home\Maps\level0.jpg">
       <BrowseToURL>Home\Maps\level0.jpg</BrowseToURL>

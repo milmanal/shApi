@@ -10,6 +10,7 @@ using System.Data.Entity.Validation;
 using System.Text;
 using MallBuddyApi2.Models.existing;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq.Expressions;
 
 namespace MallBuddyApi2.Models
 {
@@ -27,7 +28,7 @@ namespace MallBuddyApi2.Models
         public DbSet<Category> Categories { get; set; }        
         public DbSet<Point3D> Points { get; set; }
         //public DbSet<ContactDetails> ContactDetails { get; set; }
-        public DbSet<Image> Images { get; set; }
+        //public DbSet<Image> Images { get; set; }
         public DbSet<LineStringDTO> LineStrings { get; set; }
         //static ApplicationDbContext()
         //{
@@ -35,7 +36,7 @@ namespace MallBuddyApi2.Models
         //}
 
         public ApplicationDbContext()
-            : base("Indoor")
+            : base("Indoor3")
         {
             Configuration.ProxyCreationEnabled = false;
         }
@@ -55,6 +56,7 @@ namespace MallBuddyApi2.Models
 
             modelBuilder.Entity<Polygone>().HasKey(e => e.PoiId);
             modelBuilder.Entity<Polygone>().Property(e => e.PoiId).HasDatabaseGeneratedOption(DatabaseGeneratedOption.None);
+            //modelBuilder.Entity<POI>().
             //modelBuilder.Ignore<LineString3D<Point3D>>();
         }
 
@@ -93,6 +95,7 @@ namespace MallBuddyApi2.Models
         //        ); // Add the original exception as the innerException
         //    }
         //}
+
     }
 
     public class MigrationsContextFactory : IDbContextFactory<ApplicationDbContext>

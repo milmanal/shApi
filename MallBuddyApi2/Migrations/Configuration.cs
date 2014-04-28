@@ -20,6 +20,8 @@ namespace MallBuddyApi2.Migrations
     using System.Text;
     using System.Text.RegularExpressions;
     using CsvHelper;
+    using log4net;
+    using System.Linq.Expressions;
 
     internal sealed class Configuration : DbMigrationsConfiguration<MallBuddyApi2.Models.ApplicationDbContext>
     {
@@ -29,6 +31,7 @@ namespace MallBuddyApi2.Migrations
         
         private const string JSON_DIR_PATH = @"F:\Users\mlmn\Documents\Indoor\indoorIO";
         ApplicationDbContext dcImportContext;// = new ApplicationDbContext("DCImport");
+        ILog logger = log4net.LogManager.GetLogger(typeof(Configuration));
 
         public Configuration()
         {
@@ -52,11 +55,14 @@ namespace MallBuddyApi2.Migrations
             //
             //if (System.Diagnostics.Debugger.IsAttached == false)
             //   System.Diagnostics.Debugger.Launch();
+            //CreateUniqueIndex<POI>(context.Database, x => x.Type);
 
             //System.Diagnostics.Debugger.Break();
-            SeedFromJson(new ApplicationDbContext("DefaultConnection"));
-            //SeedFromJson(new ApplicationDbContext("Indoor"));
-            //ReadDCData(new ApplicationDbContext("DCImport2"));
+            //SeedFromJson(new ApplicationDbContext("DefaultConnection"));
+            //SeedFromJson(new ApplicationDbContext("Indoor3"));
+            
+
+            ReadDCData(new ApplicationDbContext("DCImport2"));
             //InsertGolfStore(context);
         }
 
@@ -144,8 +150,11 @@ namespace MallBuddyApi2.Migrations
             {
                 //var map = csvReader.Configuration.AutoMap<POI>();
                 //map.
+                int i = 0;
                 while (csvReader.Read())
                 {
+                    //if (i++ == 329)
+                      //  Debugger.Break();
                     POI poi = null;
                     var type = POI.POIType.NONE;
                     string typeString;
@@ -155,7 +164,7 @@ namespace MallBuddyApi2.Migrations
                     }
                     if (type == POI.POIType.NONE)
                         continue;
-                    if (type == POI.POIType.STORE)
+                    if (type == POI.POIType.STORE | type == POI.POIType.KIOSK | type == POI.POIType.SPECIAL_POI)
                     {
                         poi = new Store();
                         ((Store)poi).Name2 = csvReader.GetField("Name2").Trim();
@@ -205,7 +214,11 @@ namespace MallBuddyApi2.Migrations
                     poi.Location.Areas = new List<Area>();
                     string[] areasStrings = csvReader.GetField("Areas").Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (string area in areasStrings)
+                    {
                         poi.Location.Areas.Add(new Area(area.Trim()));
+                        //if (area.Trim() == "7148")
+                          //  Debugger.Break();
+                    }
                     poi.Location.POI = poi;
                     context.POIs.Add(poi);
                     try
@@ -226,13 +239,17 @@ namespace MallBuddyApi2.Migrations
             TimeSpan? weekdayfrom = null;// = SqlDateTime.MinValue;
             DateTime weekdayfromdt;
             //DateTime.TryParseExact(csvReader.GetField("WeekdayOpen"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdayfromdt);
-            if (DateTime.TryParseExact(csvReader.GetField("WeekdayOpen"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdayfromdt))
+            if (DateTime.TryParseExact(csvReader.GetField("WeekdayOpen").Trim(), "H:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdayfromdt))
                 weekdayfrom = weekdayfromdt.TimeOfDay;
+            else
+                Debugger.Break();
             TimeSpan? weekdayto = null;
             DateTime weekdaytodt;
             //DateTime.TryParseExact(csvReader.GetField("WeekdayClose"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdaytodt);
-            if (DateTime.TryParseExact(csvReader.GetField("WeekdayClose"), "HH:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdaytodt))
+            if (DateTime.TryParseExact(csvReader.GetField("WeekdayClose").Trim(), "H:mm", null, System.Globalization.DateTimeStyles.AssumeLocal, out weekdaytodt))
                 weekdayto = weekdaytodt.TimeOfDay;
+            else
+                Debugger.Break();
 
             OperationHours sunday = new OperationHours { day = DayOfWeek.Sunday, from = weekdayfrom, to = weekdayto };
             OperationHours monday = new OperationHours { day = DayOfWeek.Monday, from = weekdayfrom, to = weekdayto };
@@ -358,13 +375,29 @@ namespace MallBuddyApi2.Migrations
                     extractConnector(j, context);
                 foreach(LineStringDTO ldto in lineStrings)
                     context.LineStrings.AddOrUpdate(x=>new {x.Wkt,x.Level}, ldto);
+
                 try
                 {
                     context.SaveChanges();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.Message + "\r\n" + ex.StackTrace);
+                    logger.Error(ex);
+                }
+                foreach (POI poi in dcPois.Where(x => x.Type == POI.POIType.PARKING | x.Type == POI.POIType.ENTRANCE))
+                {
+                    if (poi.Location == null || poi.Location.Areas == null)
+                        continue;
+                    //Point3D point = labeledPoints.Values.Where(x => x.Areas.Contains(poi.Location.Areas[0])).SingleOrDefault();
+                    foreach (Point3D point3 in labeledPoints.Values)
+                        if (point3.Areas != null && point3.Areas.Contains(poi.Location.Areas[0]))
+                        {
+                            poi.Entrances = new List<Point3D>();
+                            poi.Entrances.Add(point3);
+                            poi.Anchor = point3;
+                            poisToSave.Add(poi);
+                            break;
+                        }
                 }
                 foreach (POI poi in poisToSave)
                 {
@@ -406,6 +439,7 @@ namespace MallBuddyApi2.Migrations
                     }
                 }
                 context.SaveChanges();
+
                 //foreach (POI poi in poisToSave)
                 //{
                 //    if (poi.Type == POI.POIType.STORE)
@@ -719,7 +753,7 @@ namespace MallBuddyApi2.Migrations
                 string lat = Regex.Match(j.ToString(), "32\\.\\d+").Value;
                 wktsb.Append(lon + " " + lat + ",");
                 pointWkt.Append(lon + " " + lat + ")");
-                //if (pointWkt.ToString() == "POINT (34.776239992664784 32.07554239891567)")
+                //if (pointWkt.ToString() == "POINT (34.77454204946333 32.075209228606404)")
                   //  Debugger.Break();
                 if (!toReturn.Points.Exists(Point3D => Point3D.Wkt == pointWkt.ToString()))
                 {
@@ -812,6 +846,7 @@ namespace MallBuddyApi2.Migrations
                         fromDCInfo.Level = level;
                         fromDCInfo.Modified = DateTime.Now;
                         poisToSave.Add(fromDCInfo);
+                        //dcPois.Remove(fromDCInfo);
                         return;
                     }
 
@@ -824,7 +859,7 @@ namespace MallBuddyApi2.Migrations
                     poi.Type = POI.POIType.ENTRANCE;
                 if (labeledPoint.Name.ToLower().Contains("toilet") | labeledPoint.Name.ToLower().Contains("wc"))
                     poi.Type = POI.POIType.WC;
-                if (labeledPoint.Name.ToLower().Contains("deadzone"))
+                if (Regex.IsMatch(labeledPoint.Name,"((Road\\d)|(Peer\\d(A|B)))",RegexOptions.IgnoreCase))
                     poi.Type = POI.POIType.DEADZONE;
                 if (labeledPoint.Name.ToLower().Contains("level"))
                     poi.Type = POI.POIType.HOSTED_LEVEL;
@@ -835,24 +870,25 @@ namespace MallBuddyApi2.Migrations
                 {
                     case POI.POIType.STORE:
                         {
-                            poi = new Store
-                            {
-                                Type = poi.Type,
-                                Anchor = labeledPoint,
-                                Enabled = true,
-                                IsAccessible = labeledPoint.IsAccessible,
-                                Name = labeledPoint.Name,
-                                Name2 = labeledPoint.Name2,
-                                Location = toReturn,
-                                Entrances = new List<Point3D>()
-                            };
-                            foreach (Point3D entrancePoint in labeledPointsFound)
-                            {
-                                ((Store)poi).Entrances.Add(entrancePoint);
-                                entrancePoint.Type = Point3D.PointType.ENTRANCE;
-                            }
-                            //context.Stores.AddOrUpdate(new Store[] { (Store)poi });
-                            break;
+                            return;
+                            //poi = new Store
+                            //{
+                            //    Type = poi.Type,
+                            //    Anchor = labeledPoint,
+                            //    Enabled = true,
+                            //    IsAccessible = labeledPoint.IsAccessible,
+                            //    Name = labeledPoint.Name,
+                            //    Name2 = labeledPoint.Name2,
+                            //    Location = toReturn,
+                            //    Entrances = new List<Point3D>()
+                            //};
+                            //foreach (Point3D entrancePoint in labeledPointsFound)
+                            //{
+                            //    ((Store)poi).Entrances.Add(entrancePoint);
+                            //    entrancePoint.Type = Point3D.PointType.ENTRANCE;
+                            //}
+                            ////context.Stores.AddOrUpdate(new Store[] { (Store)poi });
+                            //break;
                         }
                     default:
                         {
@@ -977,6 +1013,40 @@ namespace MallBuddyApi2.Migrations
             {
                 ex = ex;
             }
+        }
+
+        public static void CreateUniqueIndex<TModel>(Database database, Expression<Func<TModel, object>> expression)
+        {
+            if (database == null)
+                throw new ArgumentNullException("database");
+
+            // Assumes singular table name matching the name of the Model type
+
+            var tableName = typeof(TModel).Name + "s";
+            var columnName = GetLambdaExpressionName(expression.Body);
+            var indexName = string.Format("IX_{0}_{1}", tableName, columnName);
+
+            var createIndexSql = string.Format("CREATE UNIQUE INDEX {0} ON {1} ({2})", indexName, tableName, columnName);
+
+            database.ExecuteSqlCommand(createIndexSql);
+        }
+
+        public static string GetLambdaExpressionName(Expression expression)
+        {
+            MemberExpression memberExp = expression as MemberExpression;
+
+            if (memberExp == null)
+            {
+                // Check if it is an UnaryExpression and unwrap it
+                var unaryExp = expression as UnaryExpression;
+                if (unaryExp != null)
+                    memberExp = unaryExp.Operand as MemberExpression;
+            }
+
+            if (memberExp == null)
+                throw new ArgumentException("Cannot get name from expression", "expression");
+
+            return memberExp.Member.Name;
         }
     }
 }
